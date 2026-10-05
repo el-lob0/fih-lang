@@ -207,6 +207,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
             token, value := tokenize_word(word)
             append_elem(tokens, token)
             append_elem(values, value)
+            append_elem(positions, position)   
             clear(&buffer)
         }
 
@@ -231,6 +232,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         if in_single_quote && char != '\'' {
             append_elem(tokens, Token.Char)
             append_elem(values, fmt.tprintf("%c", char))
+            append_elem(positions, position)   
             previous_byte = char
             continue
         }
@@ -240,21 +242,25 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         if previous_byte == '=' && char != '=' {
             append_elem(tokens, Token.AssignOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         if previous_byte == '/' && char != '/' {
             append_elem(tokens, Token.DivOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         if previous_byte == '!' && char != '=' {
             append_elem(tokens, Token.NotPrefix)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         if previous_byte == '&' && char != '&' {
             append_elem(tokens, Token.ReferenceOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         // -------------------- end checks -----------------
@@ -265,9 +271,11 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
 
                 append_elem(tokens, Token.DoubleQuoteClose)
                 append_elem(values, "")
+                append_elem(positions, position)   
 
                 append_elem(tokens, Token.String)
                 append_elem(values, string(buffer[:]))
+                append_elem(positions, position)   
 
                 in_double_quote = false
             }
@@ -275,6 +283,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
  
                append_elem(tokens, Token.DoubleQuoteOpen)
                append_elem(values, "")
+               append_elem(positions, position)   
 
                in_double_quote = true
             }
@@ -284,12 +293,14 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
                 in_single_quote = true
                 append_elem(tokens, Token.SingleQuoteOpen)
                 append_elem(values, "")
+                append_elem(positions, position)   
             }
             if in_single_quote {
                 char_count = 0
 
                 append_elem(tokens, Token.SingleQuoteClose)
                 append_elem(values, "")
+                append_elem(positions, position)   
             }
         }
         // ------------------------ END CHAR AND STRING -------------------
@@ -298,14 +309,17 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         case '+': {
             append_elem(tokens, Token.PlusOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
         case '-': {
             append_elem(tokens, Token.MinusOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
         case '*': {
             append_elem(tokens, Token.MultOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
         case '/': {
             if previous_byte == '/' {
@@ -315,6 +329,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         case '%': {
             append_elem(tokens, Token.ModuloOp)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         // -----------------------  BOOL OPERATORS (+assign) ---------------- 
@@ -322,27 +337,33 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
             if previous_byte == '|' {
                 append_elem(tokens, Token.OR_ComparisonOp)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } // else do nothing, lone | is invalid
         }
         case '&': {
             if previous_byte == '&' {
                 append_elem(tokens, Token.AND_ComparisonOp)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } // else do nothing, lone & is a reference
         }
         case '=': {
             if previous_byte == '=' {
                 append_elem(tokens, Token.EqualComparisonOp)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } else if previous_byte == '>' {
                 append_elem(tokens, Token.EqualOrMore)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } else if previous_byte == '<' {
                 append_elem(tokens, Token.EqualOrLess)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } else if previous_byte == '!' {
                 append_elem(tokens, Token.NotEqualComparisonOp)
                 append_elem(values, "")
+                append_elem(positions, position)   
             }
             // else is handled later when next byte is confirmed not to be equal
         }
@@ -350,18 +371,22 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
             if previous_byte == '=' {
                 append_elem(tokens, Token.EqualOrMore)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } else {
                 append_elem(tokens, Token.MoreThan)
                 append_elem(values, "")
+                append_elem(positions, position)   
             }
         }
         case '<': {
             if previous_byte == '=' {
                 append_elem(tokens, Token.EqualOrLess)
                 append_elem(values, "")
+                append_elem(positions, position)   
             } else {
                 append_elem(tokens, Token.LessThan)
                 append_elem(values, "")
+                append_elem(positions, position)   
             }
         }
         case '!': {} // handled in = case and in pre switch checks
@@ -370,51 +395,63 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         case '{': {
             append_elem(tokens, Token.CurlyBracketOpen)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
         case '}': {
             append_elem(tokens, Token.CurlyBracketClose)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case '(': {
             append_elem(tokens, Token.ParenthesisOpen)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case ')': {
             append_elem(tokens, Token.ParenthesisClose)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case '[': {
             append_elem(tokens, Token.SquareBracketOpen)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case ']': {
             append_elem(tokens, Token.SquareBracketClose)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case ':': {
             append_elem(tokens, Token.Colon)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case '.': {
             append_elem(tokens, Token.Dot)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case ',': {
             append_elem(tokens, Token.Comma)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case ';': {
             append_elem(tokens, Token.SemiColon)
             append_elem(values, "")
+    append_elem(positions, position)   
         }
         case '`': {
             if multi_string {
                 append_elem(tokens, Token.TildeClose)
                 append_elem(values, "")
+                append_elem(positions, position)   
                 multi_string := false
             } else {
                 append_elem(tokens, Token.TildeOpen)
                 append_elem(values, "")
+                append_elem(positions, position)   
                 multi_string := true
             }
         }
@@ -427,11 +464,13 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
                 token, value := tokenize_word(word)
                 append_elem(tokens, token)
                 append_elem(values, value)
+                append_elem(positions, position)   
                 clear(&buffer)
             }
             if char == '\n' {
                 append_elem(tokens, Token.Newline)
                 append_elem(values, "")
+                append_elem(positions, position)   
                 line += 1
                 col = 0
             }
@@ -443,10 +482,12 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         case '@': {
             append_elem(tokens, Token.Tag)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
         case '#': {
             append_elem(tokens, Token.Hashtag)
             append_elem(values, "")
+            append_elem(positions, position)   
         }
 
         // ------------- CHARS THAT AREN'T PART OF THE SYNTAX (YET) ---------------------
@@ -471,6 +512,8 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
     }
 
 
+    append_elem(tokens, Token.EOF)
+    append_elem(values, "")
     return Error.None, line, col
 }
 
