@@ -76,6 +76,11 @@ StringState :: enum {
   Outside
 }
 
+Token_position :: struct {
+  line: u32,
+  col: u32,
+}
+
 is_numerical :: proc(str: string) -> bool {
     is_numerical := true
     for char in str {
@@ -146,16 +151,22 @@ tokenize_word :: proc(word: string) -> (Token, string) {
       case "enum": return Token.TypeEnum, ""
       }
 
-
       return token, word // obsolete but ye         
 
 }
 
+append_token :: proc(tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: ^[dynamic]Token_position, 
+                         token: Token, value: string, position: Token_position) {
+    append_elem(tokens, token)
+    append_elem(values, value)   
+    append_elem(positions, position)   
+}
 
-tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: string) -> (Error, int) {
+tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: ^[dynamic]Token_position, file: string) -> (Error, u32, u32) {
     buffer : [dynamic]u8
 
-    line := 1
+    line : u32 = 1
+    col : u32 = 0
 
     in_single_quote := false
     char_count := 0
@@ -168,7 +179,13 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: strin
 
     for char in file {
 
+        col += 1
       
+        position := Token_position {
+            line,
+            col,
+        }
+
         // WARN: Later, maybe next compiler, i'd like to implement maybe comments 
         // that are kept for logging purposes (with special syntax etc)
         if comment {
@@ -200,12 +217,12 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: strin
             // escape char check and logic
         }
         if char_count > 2 {
-            return Error.ExpectedClosingSingleQuote, line 
+            return Error.ExpectedClosingSingleQuote, line, col 
         }
 
         if in_double_quote {
             if char == '\n' {
-                return Error.ExpectedClosingDoubleQuote, line
+                return Error.ExpectedClosingDoubleQuote, line, col
             }
             append_elem(&buffer, u8(char))
             previous_byte = char
@@ -416,6 +433,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: strin
                 append_elem(tokens, Token.Newline)
                 append_elem(values, "")
                 line += 1
+                col = 0
             }
         }
         // escapes
@@ -434,13 +452,13 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: strin
         // ------------- CHARS THAT AREN'T PART OF THE SYNTAX (YET) ---------------------
         // return unexpected token error
         case '?': { 
-            return Error.UnexpectedToken, line
+            return Error.UnexpectedToken, line, col
         }
         case '^': { 
-            return Error.UnexpectedToken, line
+            return Error.UnexpectedToken, line, col
         }
         case '~': { 
-            return Error.UnexpectedToken, line
+            return Error.UnexpectedToken, line, col
         }
 
         // ------------------ LETTERS AND NUMBERS ---------------------------------------
@@ -453,26 +471,28 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, file: strin
     }
 
 
-    return Error.None, line
+    return Error.None, line, col
 }
 
 
 
-file_to_tokens :: proc(filepath: string) -> ([dynamic]Token, [dynamic]string, Error, string) {
+file_to_tokens :: proc(filepath: string) -> ([dynamic]Token, [dynamic]string, [dynamic]Token_position, Error, string) {
     tokens : [dynamic]Token
     values : [dynamic]string
+    positions: [dynamic]Token_position
  
     raw_file, read_error := os.read_entire_file_from_filename(filepath)
     
-    err, err_line := tokenize(&tokens, &values, string(raw_file))
+    err, err_line, err_col := tokenize(&tokens, &values, &positions, string(raw_file))
     defer delete(raw_file, context.allocator)
 
 
     if err != Error.None {
         clear(&tokens)
         clear(&values)
-        return tokens, values, err, fmt.tprintf("at line number %d", err_line)
+        clear(&positions)
+        return tokens, values, positions, err, fmt.tprintf("at %d:%d", err_line, err_col)
     } 
 
-    return tokens, values, Error.None, fmt.tprintf("Tokenized file: %s", filepath)
+    return tokens, values, positions, Error.None, fmt.tprintf("Tokenized file: %s", filepath)
 }

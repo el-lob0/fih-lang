@@ -1,21 +1,13 @@
 package v0compiler
 
 
-StatementType :: enum {
-    TypeDeclaration,
-    FunctionDeclaration,
-    RunDeclaration
-}
-
-Statement :: struct {
-    type: StatementType,
-}
 
 
 
-parse_tokenstream :: proc(source_id: string, tokens: ^[dynamic]Token, values: ^[dynamic]string) -> (Error, [dynamic]Statement) {
 
-    statements : [dynamic]Statement
+parse_tokenstream :: proc(source_id: string, tokens: ^[dynamic]Token, values: ^[dynamic]string) -> Error {
+
+    declared_types : [dynamic]TypeDeclaration
 
     /* 
 
@@ -23,22 +15,8 @@ parse_tokenstream :: proc(source_id: string, tokens: ^[dynamic]Token, values: ^[
 
      */
 
-    return Error.None, statements
+    return Error.None
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
