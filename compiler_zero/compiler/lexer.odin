@@ -40,6 +40,8 @@ Token :: enum {
     TypeFloat_8,
     TypeFloat_32,
     TypeFloat_64,
+    TypeString,
+    TypeChar,
     // ----------- 
     Number,
     String,
@@ -145,8 +147,8 @@ tokenize_word :: proc(word: string) -> (Token, string) {
       case "u64": return Token.TypeFloat_8, ""
       case "f32": return Token.TypeFloat_32, ""
       case "f64": return Token.TypeFloat_64, ""
-      case "string": return Token.String, ""
-      case "char": return Token.Char, ""
+      case "string": return Token.TypeString, ""
+      case "char": return Token.TypeChar, ""
       case "struct": return Token.TypeStruct, ""
       case "enum": return Token.TypeEnum, ""
       }

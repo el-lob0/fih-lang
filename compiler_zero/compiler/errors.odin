@@ -7,6 +7,8 @@ Error :: enum {
     ExpectedClosingSingleQuote,
     ExpectedClosingDoubleQuote,
     UnexpectedToken,
+    ExpectedIdentifier,
+    ExpectedParen,
     
 }
 
