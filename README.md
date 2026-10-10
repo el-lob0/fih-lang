@@ -154,6 +154,19 @@ fn one_plus_one(): int, error_domain_name {
     return 1+1, FileError("pythagore said nah")
 }
 ```
+
+polymorphism ? <br />
+```rust
+fn print(input: any): () {
+    match input.type() {
+        Int => { convert to string and print }
+        string => { print }
+        char => whatever
+    }
+}
+
+```
+
 <br />
 
 markers (idea only) <br />
