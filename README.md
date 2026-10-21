@@ -7,7 +7,7 @@
 ---
 
 
-## Syntax (Grammar)
+## Syntax 
 
 main block <br />
 ```c
@@ -28,15 +28,25 @@ comment block
 ```
 <br />
 
-loops <br />
+loops (unfinished) <br />
 ```rs
 
-loop (i32: i = 0) < n {
+// loop (condition) {}
 
+// in is simply a boolean operator
+// so this is the equivalent of for i in a {}
+loop (i:=0) in list {
+    // automatically iterating, feasable ?
 }
 
-loop (bool: on) == false {
+// this is somewhat equivalent to a while loop
+on: bool = true
+loop  on == false {
+}
 
+// this is like a normal for loop 
+loop (i:=0) < 10 {
+    i += 1;
 }
 ```
 
@@ -80,24 +90,14 @@ enum Nationality {
     NotFrench,
 }
 
-if n == Nationality::French {}
+if n == Nationality.French {}
 
 ```
 <br />
 
-maps <br />
+dictionaries ? <br />
 ```c
-// each field is a list (dynamic array)
-map People {
-    age: int,
-    name: string,
-}
-
-people: People // initialized each list as empty
-
-people.age = some_list
-
-list_add(people.age, 18)
+// idk imma think about it
 
 ```
 <br />
@@ -107,8 +107,9 @@ other types <br />
 u32, u64, i32, i63
 
 string
+multi line string 
 
-id // index
+other stuff
 
 ```
 <br />
@@ -127,31 +128,32 @@ type TypeName: int
 
 boolean operations <br />
 ```c 
-// joining bools in comparisions
-
+// joining bools in comparisions ?? idk
 if x; > 1 | < 0 { }
+if x == (0 | 1 | 2) { }
 
 // normal bools 
 
 if x > 10 {}
 ```
 
-errors <br />
-```c 
-// to replace magic numbers with human readable and easily send error messages
+errors and null <br />
+```rs
+// declare error names
+error none
+error input
+error something
 
-type error_domain_name: Error {
-    FileError(msg),
-    InputError(msg),
-    // etc... 
-    // Enum values start at 1
-    // explicitly return None if no error, and None = 0
-}
+// use in a variable
+number: int | none = none
 
 // use in a function 
-
-fn one_plus_one(): int, error_domain_name {
-    return 1+1, FileError("pythagore said nah")
+fn one_plus_one(): (int | none | something) {
+    // stuff 
+    // ...
+        return int 
+    }
+    return none 
 }
 ```
 
@@ -181,9 +183,7 @@ markers (idea only) <br />
 
 ## Memory Management
 
-- Mutable values are moved, pointers are only for immutable values (Cloning/copying is possible).
-- All values are freed at the end of their scope.
-- You can create, modify and access global data through maps, and indexes/handles.
+- Manual
 
 ## Standard Library
 
