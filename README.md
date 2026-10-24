@@ -1,7 +1,11 @@
 
-### (wip)
 
-# Design
+<img width="914" height="403" alt="image" src="https://github.com/user-attachments/assets/fb7a6dfc-25aa-470c-b72c-e3a961c8b03b" />
+
+
+### (wip)
+   
+# Design   
 
 
 ---
@@ -193,3 +197,4 @@ markers (idea only) <br />
 - Hashmaps
 - FFI
 - Vulkan interface
+

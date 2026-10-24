@@ -3,11 +3,6 @@ package v0compiler
 
 
 
-
-
-
-
-
 ElementHandle :: u64
 
 // Thing here can be a variable, an expression, a loop, a function. Anything. 
@@ -26,9 +21,10 @@ ElementType :: enum {
 /*
  For the types, Type is an element which is used in the logic.
  While DeclaredType is a statement element which is referred to inside of Type.
- It is stored along the other statements because its part of the syntax and to be referenced as well.
+ It is stored alongside the other statements because its part of the syntax and to be referenced as well.
  */
     Type,
+    TypeOr,
     DeclaredType, 
 
     // expressions (sub statements)
