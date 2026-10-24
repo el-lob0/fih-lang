@@ -67,6 +67,7 @@ Token :: enum {
     NotPrefix,
     Newline,
     Dot,
+    Underscore,
     Comma,
     SemiColon,
     Colon,
@@ -546,6 +547,7 @@ file_to_tokens :: proc(filepath: string) -> ([dynamic]Token, [dynamic]string, [d
         clear(&positions)
         return tokens, values, positions, err, fmt.tprintf("at %d:%d", err_line, err_col)
     } 
+
 
     return tokens, values, positions, Error.None, fmt.tprintf("Tokenized file: %s", filepath)
 }

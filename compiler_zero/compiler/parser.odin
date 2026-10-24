@@ -6,6 +6,9 @@ package v0compiler
 
 
 
+
+
+
 parse_function :: proc(old_i: int, elements: ElementStorage, tokens: ^[dynamic]Token, values: ^[dynamic]string) -> (int, Error) {
     // now we are at the token after `fn`
     if tokens[old_i] != Token.Identifier {
@@ -90,6 +93,18 @@ parse_token_stream :: proc(source_id: string, tokens: ^[dynamic]Token, values: ^
 
     i := 0
     err : Error
+
+// TODO:  *** Parse unary expressions, variable assignements, and binary expressions
+
+// TODO:  ** Parse conditionals
+
+// TODO:  ** Parse function definitions
+
+// TODO:  ** Parse type declarations
+
+// TODO:  * Parse function calls
+
+// TODO:  * Parse loops (last thing) // THEN: Code generation
 
 
     for tokens[i] != Token.EOF {

@@ -1,5 +1,6 @@
 package v0compiler
 
+// TODO:  *** Add function calls to syntax structure P.S. return expressions need reviewing ?
 
 ElementHandle :: u64
 
@@ -48,6 +49,10 @@ ElementData :: union {
 	Run,
 	Match,
 	ReturnStatement,
+
+  Signal,
+  Type,
+
 	DeclaredType,
 	UnaryExpression,
 	BinaryExpression,
@@ -81,6 +86,8 @@ ReturnStatement :: [dynamic]ElementHandle // NOTE: i can refer to this with an e
 
 Function :: struct {
 	name:         string,
+  param_names: [dynamic]ElementHandle,
+  param_types: [dynamic]ElementHandle,
 	return_types: [dynamic]ElementHandle, // pointing to Type
 	body:         [dynamic]ElementHandle,
 }
@@ -135,14 +142,17 @@ BinaryOp :: enum {
 }
 
 Value :: struct {
-	type:  Type,
 	value: string,
+}
+
+Signal :: struct {
+  name: string,
 }
 
 VariableDeclaration :: struct {
 	name:        string,
 	type:        Type,
-	initializer: ElementHandle, // optional
+	initializer: ElementHandle, // a Value
 }
 
 VariableMove :: struct {
