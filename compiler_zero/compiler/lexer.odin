@@ -30,6 +30,7 @@ Token :: enum {
     KeywordType,
     KeywordMatch,
     KeywordOr,
+    KeywordSignal,
     // types
     TypeStruct,
     TypeEnum,
@@ -114,7 +115,7 @@ interruption_met :: proc(char: rune) -> bool {
 tokenize_word :: proc(word: string) -> (Token, string) {
 
       is_key := word =="run" || word == "loop" || word == "if" || word =="else" || word == "array" || word == "fn" || 
-                          word == "type" || word == "or" || word == "null" || word == "match"
+                          word == "type" || word == "or" || word == "null" || word == "match" || word == "signal"
 
       is_type := word =="i8" || word == "u8" || word == "f8" || word =="i32" || word == "u32" || word == "f32" || 
                           word == "i64" || word == "u64" || word == "f64" ||
@@ -143,6 +144,7 @@ tokenize_word :: proc(word: string) -> (Token, string) {
       case "match": return Token.KeywordMatch, ""
       case "or": return Token.KeywordOr, ""
       case "null": return Token.Null, ""
+      case "signal": return Token.KeywordSignal, ""
 
       case "i8": return Token.TypeInt_8, ""
       case "i32": return Token.TypeInt_32, ""

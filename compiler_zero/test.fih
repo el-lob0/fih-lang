@@ -6,10 +6,36 @@ block
 
 type Index: u32
 
+type Person: struct {
+    age: int,
+    name: string,
+}
+
+signal {
+    success,
+    failure,
+}
+
+fn hello_world(name: string): success or failure {
+    println("hello world ", name)
+    return success
+}
 
 
 run {
-    loop (i32: index = 0.1) < max {
-        a.number = index+something
+    
+    max: u32 = 10
+
+    loop (i := 0) < max {
+        if i == (2 | 3) {
+            result := hello_world("fih")
+
+            if result == failure {
+                paragraph := ```an error
+                and uhh another line```
+
+                print(paragraph)
+            }
+        }
     }
 }
