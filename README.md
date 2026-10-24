@@ -14,7 +14,7 @@
 ## Syntax 
 
 main block <br />
-```c
+```
 run {
     const string name = "your_name";
     print(hello_world(name, 0));
@@ -22,7 +22,7 @@ run {
 ```
 <br />
 
-```c
+```
 // comment
 
 /*
@@ -33,7 +33,7 @@ comment block
 <br />
 
 loops (unfinished) <br />
-```rs
+```
 
 // loop (condition) {}
 
@@ -57,7 +57,7 @@ loop (i:=0) < 10 {
 <br />
 
 functions <br />
-```c
+```
 fn hello_world(name: string, count: int): () {
     return l
 }
@@ -65,7 +65,7 @@ fn hello_world(name: string, count: int): () {
 <br />
 
 lists <br />
-```c
+```
 // dynamic by default
 list l = []
 list_add(l, "a")
@@ -74,7 +74,7 @@ list_add(l, "a")
 <br />
 
 struct <br />
-```c 
+``` 
 struct Person {
     age: int,
     name: string.
@@ -88,7 +88,7 @@ a = person.age
 <br />
 
 enum <br />
-```c
+```
 enum Nationality {
     French,
     NotFrench,
@@ -100,7 +100,7 @@ if n == Nationality.French {}
 <br />
 
 dictionaries ? <br />
-```c
+```
 // idk imma think about it
 
 ```
@@ -119,7 +119,7 @@ other stuff
 <br />
 
 Aliasing:
-```c
+```
 type TypeName: enum {
     // ...
 }
@@ -131,7 +131,7 @@ type TypeName: int
 <br />
 
 boolean operations <br />
-```c 
+``` 
 // joining bools in comparisions ?? idk
 if x; > 1 | < 0 { }
 if x == (0 | 1 | 2) { }
@@ -142,7 +142,7 @@ if x > 10 {}
 ```
 
 errors and null <br />
-```rs
+```
 // declare error names
 error none
 error input
@@ -176,7 +176,7 @@ fn print(input: any): () {
 <br />
 
 markers (idea only) <br />
-```c 
+``` 
 @debug "message {some_variable_name}" 
 // stops the code at this point and prints (only usable in run {} block)
 
