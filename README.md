@@ -39,8 +39,11 @@ loops (unfinished) <br />
 
 // in is simply a boolean operator
 // so this is the equivalent of for i in a {}
-loop (i:=0) in list {
-    // automatically iterating, feasable ?
+loop i in list { // in makes i take the first value in list and iterate until the last
+    // ints are iterable from 0 to the int value 
+    // strings are iterable from the first char to the last 
+    // same goes for normal arrays
+    // consider making struct fields iterable as well
 }
 
 // this is somewhat equivalent to a while loop
@@ -107,7 +110,7 @@ dictionaries ? <br />
 <br />
 
 other types <br />
-```sh
+```
 u32, u64, i32, i63
 
 string
@@ -141,33 +144,32 @@ if x == (0 | 1 | 2) { }
 if x > 10 {}
 ```
 
-errors and null <br />
+signals and null <br />
 ```
-// declare error names
-error none
-error input
-error something
-
-// use in a variable
-number: int | none = none
+// declare signal names
+signal error
+signal input
+signal something
 
 // use in a function 
-fn one_plus_one(): (int | none | something) {
-    // stuff 
+
+fn one_plus_one(): (int or error, string or null) {
+
+    {
     // ...
-        return int 
+        return (number, null)
     }
-    return none 
+    return (error, message)
 }
 ```
 
 polymorphism ? <br />
-```rust
+```
 fn print(input: any): () {
     match input.type() {
-        Int => { convert to string and print }
-        string => { print }
-        char => whatever
+        Compiler.Types.i32: { convert to string and print }
+        Compiler.Types.string: { print }
+        Compiler.Types.char: whatever
     }
 }
 
