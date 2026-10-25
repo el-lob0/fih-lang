@@ -8,8 +8,12 @@ Error :: enum {
     ExpectedClosingDoubleQuote,
     UnexpectedToken,
     ExpectedIdentifier,
+    ExpectedFunctionIdentifier,
+    ExpectedTypeIdentifier,
+    ExpectedColon,
     ExpectedParen,
     UnknownType,
+    ExpectedColonOrOpeningCurly,
     
 }
 

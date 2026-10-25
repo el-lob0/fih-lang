@@ -63,7 +63,7 @@ ElementData :: union {
 }
 
 ElementStorage :: struct {
-	type: [dynamic]TypeHandle,
+	type: [dynamic]ElementType,
 	data: [dynamic]ElementData,
 }
 
@@ -91,7 +91,7 @@ Function :: struct {
     param_names:  [dynamic]string,        // size must
 	param_types:  [dynamic]TypeHandle, // match here
 
-	return_types: [dynamic]ElementHandle, // pointing to Type
+	return_types: [dynamic]TypeHandle, // pointing to Type
 
 	body:         [dynamic]ElementHandle,
 }

@@ -569,7 +569,7 @@ file_to_tokens :: proc(filepath: string) -> ([dynamic]Token, [dynamic]string, [d
         clear(&tokens)
         clear(&values)
         clear(&positions)
-        return tokens, values, positions, err, fmt.tprintf("at %d:%d", err_line, err_col)
+        return tokens, values, positions, err, fmt.tprintf("at line: %d", err_line)
     } 
 
 

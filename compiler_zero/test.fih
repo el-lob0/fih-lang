@@ -14,7 +14,11 @@ signal {
     failure,
 }
 
-fn hello_world(name: string): success or failure {
+
+fn hello_world(name: string): u8 { 
+  // a foreign package's signal should not be returned
+  // read the exterior signal and then return your own from the first point of contact
+  
     println("hello world ", name)
     return success
 }

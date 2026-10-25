@@ -2,8 +2,6 @@ package v0compiler
 import "core:fmt"
 
 
-parse_type_def :: proc() {}
-
 token_to_type :: proc(
 	token: Token,
 	value: string,
@@ -60,27 +58,73 @@ token_to_type :: proc(
 }
 
 
-parse_expression :: proc(
+parse_type :: proc(
 	old_i: int,
-	elements: ElementStorage,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
+	builtin_type_handles: BuiltinHandles,
+	type_record: ^TypeStorage,
 ) -> (
 	int,
 	Error,
 ) {
 
-	expression: BinaryExpression
+	// now we are at the token after `type`
+	if tokens[old_i] != Token.Identifier {
+		return 0, Error.ExpectedTypeIdentifier
+	}
 
+	type: Type
+
+	type.name = values[old_i]
 	i := old_i + 1
+	if tokens[i] != Token.Colon {
+		return i, Error.ExpectedColon
+	}
+	i += 1
 
-	return old_i, Error.None
+
+	#partial switch tokens[i] {
+	case Token.TypeStruct:
+		type.builtin = BuiltinType.struct_type
+	case Token.TypeEnum:
+		type.builtin = BuiltinType.enum_type
+	case Token.TypeInt_8:
+		type.builtin = BuiltinType.i8
+	case Token.TypeInt_32:
+		type.builtin = BuiltinType.i32
+	case Token.TypeInt_64:
+		type.builtin = BuiltinType.i64
+	case Token.TypeFloat_8:
+		type.builtin = BuiltinType.f8
+	case Token.TypeFloat_32:
+		type.builtin = BuiltinType.f32
+	case Token.TypeFloat_64:
+		type.builtin = BuiltinType.f64
+	case Token.TypeUnsigned_8:
+		type.builtin = BuiltinType.u8
+	case Token.TypeUnsigned_32:
+		type.builtin = BuiltinType.u32
+	case Token.TypeUnsigned_64:
+		type.builtin = BuiltinType.u64
+	case Token.TypeString:
+		type.builtin = BuiltinType.string
+	case Token.TypeMultistring:
+		type.builtin = BuiltinType.multistring
+	case Token.TypeChar:
+		type.builtin = BuiltinType.char
+	}
+
+    type.is_custom = true
+	fmt.println("[INFO]:  Parsed type definition `", type, "`")
+    append_elem(&type_record.types, type)
+
+	return i, Error.None
 }
-
 
 parse_function_def :: proc(
 	old_i: int,
-	elements: ElementStorage,
+	elements: ^ElementStorage,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 	builtin_type_handles: BuiltinHandles,
@@ -142,25 +186,84 @@ parse_function_def :: proc(
 			param_step += 1
 			continue
 		}
-
-		if tokens[i] == Token.Identifier && param_step == TYPE {
-			// NOTE: under the assumption the type exists
-			param_step += 1
-			continue
-		}
 	}
 
-    fmt.println("[INFO]:  Parsed function definition `", function, "`")
+	i += 1
+	if tokens[i] == Token.CurlyBracketOpen {
+		return i, Error.None
+	} else if tokens[i] == Token.Colon {
+		i += 1
+	} else {
+		return i, Error.ExpectedColonOrOpeningCurly
+
+	}
+
+	for tokens[i] != Token.CurlyBracketOpen {
+		if tokens[i] == Token.Newline {
+			i += 1
+			continue
+		}
+
+		type_handle, result := token_to_type(
+			tokens[i],
+			values[i],
+			builtin_type_handles,
+			type_record,
+		)
+		if result != Error.None {
+			return i, result
+		}
+
+		append_elem(&function.return_types, type_handle)
+		i += 1
+
+		// Skip newlines after a type.
+		for tokens[i] == Token.Newline {
+			i += 1
+		}
+
+		if tokens[i] == Token.CurlyBracketOpen {
+			break
+		}
+
+		if tokens[i] != Token.Comma {
+			return i, Error.UnexpectedToken
+		}
+
+		i += 1
+	}
+
+	fmt.println("[INFO]:  Parsed function definition `", function, "`")
+	append_elem(&elements.data, function)
+	append_elem(&elements.type, ElementType.Function)
 
 	return i, Error.None
 }
+
+
+parse_expression :: proc(
+	old_i: int,
+	elements: ElementStorage,
+	tokens: ^[dynamic]Token,
+	values: ^[dynamic]string,
+) -> (
+	int,
+	Error,
+) {
+
+	expression: BinaryExpression
+
+	i := old_i + 1
+
+	return old_i, Error.None
+}
+
 
 parse_token_stream :: proc(
 	source_id: string,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 ) -> Error {
-
 
 
 	// TODO:  *** Parse unary expressions, variable assignements, and binary expressions
@@ -176,8 +279,8 @@ parse_token_stream :: proc(
 	// TODO:  * Parse loops (last thing) // THEN: Code generation
 
 
-    type_record: TypeStorage
-    builtin_type_handles := store_builtin_types(&type_record)
+	type_record: TypeStorage
+	builtin_type_handles := store_builtin_types(&type_record)
 	elements: ElementStorage
 
 	i := 0
@@ -189,20 +292,35 @@ parse_token_stream :: proc(
 
 		case Token.KeywordFn:
 			{
-				i, err = parse_function_def(i + 1, elements, tokens, values, builtin_type_handles, &type_record)
+				i, err = parse_function_def(
+					i + 1,
+					&elements,
+					tokens,
+					values,
+					builtin_type_handles,
+					&type_record,
+				)
 			}
+
+		case Token.KeywordType:
+			{
+				i, err = parse_type(
+					i + 1,
+					tokens,
+					values,
+					builtin_type_handles,
+					&type_record,
+				)
+			}
+		//
 		// case Token.KeywordRun:
 		// 	{
-		// 		i, err = parse_function_def(i + 1, elements, tokens, values, builtin_type_handles, &type_record)
+		// 		i, err = parse_block()  // with no usable variables from outside the block
 		// 	}
-		// case Token.KeywordType:
-		// 	{
-		//               fmt.println("before:", i)
-		// 		i, err = parse_function_def(i + 1, elements, tokens, values, builtin_type_handles, &type_record)
-		// 	}
+
 		}
 
-        i += 1
+		i += 1
 	}
 
 	return Error.None
