@@ -116,7 +116,7 @@ parse_type :: proc(
 	}
 
     type.is_custom = true
-	fmt.println("[INFO]:  Parsed type definition `", type, "`")
+	fmt.printfln("%s [INFO]: %s  Parsed type definition ` %v `", COLOR_GREEN, COLOR_RESET, type)
     append_elem(&type_record.types, type)
 
 	return i, Error.None
@@ -233,7 +233,7 @@ parse_function_def :: proc(
 		i += 1
 	}
 
-	fmt.println("[INFO]:  Parsed function definition `", function, "`")
+	fmt.printfln("%s [INFO]: %s  Parsed function definition ` %v `", COLOR_GREEN, COLOR_RESET, function)
 	append_elem(&elements.data, function)
 	append_elem(&elements.type, ElementType.Function)
 
