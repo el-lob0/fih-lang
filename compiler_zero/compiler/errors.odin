@@ -9,6 +9,7 @@ Error :: enum {
     UnexpectedToken,
     ExpectedIdentifier,
     ExpectedParen,
+    UnknownType,
     
 }
 

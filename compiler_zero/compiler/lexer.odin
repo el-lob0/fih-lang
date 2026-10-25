@@ -31,6 +31,8 @@ Token :: enum {
     KeywordMatch,
     KeywordOr,
     KeywordSignal,
+    KeywordTrue,
+    KeywordFalse,
     // types
     TypeStruct,
     TypeEnum,
@@ -44,6 +46,7 @@ Token :: enum {
     TypeFloat_32,
     TypeFloat_64,
     TypeString,
+    TypeMultistring,
     TypeChar,
     Null,
     // ----------- 
@@ -116,7 +119,8 @@ interruption_met :: proc(char: rune) -> bool {
 tokenize_word :: proc(word: string) -> (Token, string) {
 
       is_key := word =="run" || word == "loop" || word == "if" || word =="else" || word == "array" || word == "fn" || 
-                          word == "type" || word == "or" || word == "null" || word == "match" || word == "signal"
+                          word == "type" || word == "or" || word == "null" || word == "match" || word == "signal" ||
+                          word == "false" || word == "true" 
 
       is_type := word =="i8" || word == "u8" || word == "f8" || word =="i32" || word == "u32" || word == "f32" || 
                           word == "i64" || word == "u64" || word == "f64" ||
@@ -151,9 +155,9 @@ tokenize_word :: proc(word: string) -> (Token, string) {
       case "i32": return Token.TypeInt_32, ""
       case "i64": return Token.TypeInt_64, ""
       case "u8": return Token.TypeUnsigned_8, ""
-      case "f8": return Token.TypeUnsigned_32, ""
-      case "u32": return Token.TypeUnsigned_64, ""
-      case "u64": return Token.TypeFloat_8, ""
+      case "u32": return Token.TypeUnsigned_32, ""
+      case "u64": return Token.TypeUnsigned_64, ""
+      case "f8": return Token.TypeFloat_8, ""
       case "f32": return Token.TypeFloat_32, ""
       case "f64": return Token.TypeFloat_64, ""
       case "string": return Token.TypeString, ""
@@ -173,6 +177,8 @@ append_token :: proc(tokens: ^[dynamic]Token, values: ^[dynamic]string, position
     append_elem(positions, position)   
 }
 
+// TODO: comment block ignore
+// TODO: multi line string ??
 tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: ^[dynamic]Token_position, file: string) -> (Error, u32, u32) {
     buffer : [dynamic]u8
 
@@ -209,7 +215,7 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         }
 
 
-        // TODO: check for an invalid 2 byte succession (like | and then whitespace)
+        // TODO: * check for an invalid 2 byte succession (like | and then whitespace)
 
         //----------------------------
 
@@ -233,13 +239,29 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         }
 
         if in_double_quote {
-            if char == '\n' {
-                return Error.ExpectedClosingDoubleQuote, line, col
+            if char == '"' {
+                append_elem(tokens, Token.DoubleQuoteClose)
+                append_elem(values, "")
+                append_elem(positions, position)
+
+                append_elem(tokens, Token.String)
+                append_elem(values, string(buffer[:]))
+                append_elem(positions, position)
+
+                clear(&buffer)
+                in_double_quote = false
+                previous_byte = char
+                continue
             }
-            append_elem(&buffer, u8(char))
-            previous_byte = char
-            continue
-        }
+
+    if char == '\n' {
+        return Error.ExpectedClosingDoubleQuote, line, col
+    }
+
+    append_elem(&buffer, u8(char))
+    previous_byte = char
+    continue
+}
         if in_single_quote && char != '\'' {
             append_elem(tokens, Token.Char)
             append_elem(values, fmt.tprintf("%c", char))
@@ -519,6 +541,8 @@ tokenize :: proc (tokens: ^[dynamic]Token, values: ^[dynamic]string, positions: 
         }
         }
         previous_byte = char
+
+// FIXME: ** at the end of tokenize, check in_double_quote and return Error.ExpectedClosingDoubleQuote if it is still true. Otherwise, a string that reaches EOF without a closing quote will be accepted.
 
     }
 
