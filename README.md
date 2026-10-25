@@ -16,7 +16,7 @@
 main block <br />
 ```
 run {
-    const string name = "your_name";
+    name: string = "your_name";
     print(hello_world(name, 0));
 }
 ```
@@ -78,7 +78,7 @@ list_add(l, "a")
 
 struct <br />
 ``` 
-struct Person {
+type Person: struct {
     age: int,
     name: string.
 }
@@ -92,7 +92,7 @@ a = person.age
 
 enum <br />
 ```
-enum Nationality {
+type Nationality: enum {
     French,
     NotFrench,
 }
@@ -148,12 +148,15 @@ signals and null <br />
 ```
 // declare signal names
 signal error
-signal input
-signal something
-
+signal {
+    input
+    something
+}
 // use in a function 
+maybe_int := maybe(i32, error) // this function creates a signal type that takes one of the signals
+maybe_sting := maybe(string, null) 
 
-fn one_plus_one(): (int or error, string or null) {
+fn one_plus_one(): (maybe_int, maybe_string) {
 
     {
     // ...
@@ -161,6 +164,10 @@ fn one_plus_one(): (int or error, string or null) {
     }
     return (error, message)
 }
+
+// signal groups maybe ?
+
+
 ```
 
 polymorphism ? <br />
