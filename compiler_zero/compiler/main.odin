@@ -10,6 +10,8 @@ import "core:time"
        and finally parse function calls
    */
 
+// TODO: a smol file for logging
+
 main :: proc() {
 
     start := time.tick_now()
@@ -53,7 +55,12 @@ main :: proc() {
             }
         case Error.TypeRedeclaration:
             {
-                fmt.printfln("%s [ERROR]: %s Cannot redeclare type, line %d  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
+                fmt.printfln("%s [ERROR]: %s Cannot redeclare type, line %d.  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
+                return
+            }
+        case Error.FunctionRedeclaration:
+            {
+                fmt.printfln("%s [ERROR]: %s Cannot redeclare function, line %d.  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
                 return
             }
         }

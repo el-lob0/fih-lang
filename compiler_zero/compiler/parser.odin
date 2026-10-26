@@ -45,7 +45,7 @@ token_to_type :: proc(
 
 	if token == Token.Identifier {
 
-		len := cast(u32)len(type_record.types) - 1
+		len := cast(u32)len(type_record.types) 
 
 		for i: u32 = 0; i < len; i += 1 {
 			if type_record.types[i].name == value {
@@ -69,6 +69,8 @@ parse_type :: proc(
 	Error,
 ) {
 
+    // TODO: add parsing for structs and enums
+    
 	// now we are at the token after `type`
 	if tokens[old_i] != Token.Identifier {
 		return old_i, Error.ExpectedTypeIdentifier
@@ -130,7 +132,7 @@ parse_type :: proc(
 	return i, Error.None
 }
 
-parse_function_def :: proc(
+parse_function_signature :: proc(
 	old_i: int,
 	elements: ^ElementStorage,
 	tokens: ^[dynamic]Token,
@@ -143,12 +145,23 @@ parse_function_def :: proc(
 ) {
 
 
-	function: Function
 
 	// now we are at the token after `fn`
 	if tokens[old_i] != Token.Identifier {
 		return 0, Error.ExpectedIdentifier
 	}
+
+    s:=0
+    for element in elements.type {
+        if element == ElementType.Function {
+            if elements.data[s].(Function).name == values[old_i] {
+                return old_i, Error.FunctionRedeclaration
+            }
+        }
+        s+=1
+    }
+
+	function: Function
 
 	function.name = values[old_i]
 	i := old_i + 1
@@ -187,7 +200,6 @@ parse_function_def :: proc(
 				type_record,
 			)
 			if result != Error.None {
-                fmt.println(result)
 				return i, result
 			}
 			append_elem(&function.param_types, type_handle)
@@ -314,27 +326,28 @@ parse_token_stream :: proc(
 
     i=0
 
-	// for tokens[i] != Token.EOF {
-	//
-	// 	#partial switch tokens[i] {
-	//
-	// 	case Token.KeywordFn:
-	// 		{
-	// 			i, err = parse_function_def(
-	// 				i + 1,
-	// 				&elements,
-	// 				tokens,
-	// 				values,
-	// 				builtin_type_handles,
-	// 				&type_record,
-	// 			)
-	// 		}
-	//
-	//
-	// 	}
-	//
-	// 	i += 1
-	// }
+    // then collect all function signatures
+	for tokens[i] != Token.EOF {
+
+		#partial switch tokens[i] {
+
+		case Token.KeywordFn:
+			{
+				i, err = parse_function_signature(
+					i + 1,
+					&elements,
+					tokens,
+					values,
+					builtin_type_handles,
+					&type_record,
+				)
+			}
+		}
+        if err != Error.None {
+            return i, err
+        }
+		i += 1
+	}
 
 
 		// case Token.KeywordRun:
