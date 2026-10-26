@@ -13,6 +13,7 @@ Error :: enum {
     ExpectedColon,
     ExpectedParen,
     UnknownType,
+    TypeRedeclaration,
     ExpectedColonOrOpeningCurly,
     
 }

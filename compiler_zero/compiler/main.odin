@@ -35,17 +35,29 @@ main :: proc() {
                 fmt.printfln("%s [ERROR]: %s Expected closing `\"`, %s ", COLOR_RED, COLOR_RESET, msg)
                 return
             }
+        }
+    }
+
+    fmt.printfln("%s [INFO]: %s  %s", COLOR_GREEN, COLOR_RESET, msg)
+
+    index, result := parse_token_stream(test_file, &tokens, &values)
+
+    if result != Error.None {
+
+        #partial switch result {
+
         case Error.UnknownType:
             {
                 fmt.printfln("%s [ERROR]: %s Unknown type, %s ", COLOR_RED, COLOR_RESET, msg)
                 return
             }
+        case Error.TypeRedeclaration:
+            {
+                fmt.printfln("%s [ERROR]: %s Cannot redeclare type, line %d  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
+                return
+            }
         }
     }
-
-    fmt.printfln("%s [INFO]: %s %s", COLOR_GREEN, COLOR_RESET, msg)
-
-    result := parse_token_stream(test_file, &tokens, &values)
 
     elapsed := time.tick_diff(start, time.tick_now())
     ok := fmt.printfln("\n        %s Completed %s in:  %.9fs", COLOR_BOLD_GREEN, COLOR_RESET, time.duration_seconds(elapsed))

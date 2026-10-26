@@ -71,13 +71,21 @@ parse_type :: proc(
 
 	// now we are at the token after `type`
 	if tokens[old_i] != Token.Identifier {
-		return 0, Error.ExpectedTypeIdentifier
+		return old_i, Error.ExpectedTypeIdentifier
 	}
 
 	type: Type
 
 	type.name = values[old_i]
 	i := old_i + 1
+
+    // first check if a type with the same name exists
+    for type in type_record.types {
+        if type.name == values[old_i] {
+            return old_i, Error.TypeRedeclaration
+        }
+    }
+
 	if tokens[i] != Token.Colon {
 		return i, Error.ExpectedColon
 	}
@@ -179,7 +187,8 @@ parse_function_def :: proc(
 				type_record,
 			)
 			if result != Error.None {
-				return 0, result
+                fmt.println(result)
+				return i, result
 			}
 			append_elem(&function.param_types, type_handle)
 
@@ -263,7 +272,7 @@ parse_token_stream :: proc(
 	source_id: string,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
-) -> Error {
+) -> (int, Error) {
 
 
 	// TODO:  *** Parse unary expressions, variable assignements, and binary expressions
@@ -286,42 +295,52 @@ parse_token_stream :: proc(
 	i := 0
 	err: Error
 
+    // first we collect all the declared types  TODO: and signals
 	for tokens[i] != Token.EOF {
+		 if tokens[i] == Token.KeywordType {
+            i, err = parse_type(
+                i + 1,
+                tokens,
+                values,
+                builtin_type_handles,
+                &type_record,
+            )
+            if err != Error.None {
+                return i, err
+            }
+		}
+		i += 1
+	}
 
-		#partial switch tokens[i] {
+    i=0
 
-		case Token.KeywordFn:
-			{
-				i, err = parse_function_def(
-					i + 1,
-					&elements,
-					tokens,
-					values,
-					builtin_type_handles,
-					&type_record,
-				)
-			}
+	// for tokens[i] != Token.EOF {
+	//
+	// 	#partial switch tokens[i] {
+	//
+	// 	case Token.KeywordFn:
+	// 		{
+	// 			i, err = parse_function_def(
+	// 				i + 1,
+	// 				&elements,
+	// 				tokens,
+	// 				values,
+	// 				builtin_type_handles,
+	// 				&type_record,
+	// 			)
+	// 		}
+	//
+	//
+	// 	}
+	//
+	// 	i += 1
+	// }
 
-		case Token.KeywordType:
-			{
-				i, err = parse_type(
-					i + 1,
-					tokens,
-					values,
-					builtin_type_handles,
-					&type_record,
-				)
-			}
-		//
+
 		// case Token.KeywordRun:
 		// 	{
 		// 		i, err = parse_block()  // with no usable variables from outside the block
 		// 	}
 
-		}
-
-		i += 1
-	}
-
-	return Error.None
+	return 0, Error.None
 }
