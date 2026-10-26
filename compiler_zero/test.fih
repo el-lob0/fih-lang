@@ -9,9 +9,11 @@ type Person: struct {
     name: string,
 }
 
+signal fihh
+
 signal {
-    success,
-    failure,
+    success
+    failure
 }
 
 

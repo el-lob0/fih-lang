@@ -10,11 +10,13 @@ Error :: enum {
     ExpectedIdentifier,
     ExpectedFunctionIdentifier,
     ExpectedTypeIdentifier,
+    ExpectedSignalNameOrBlock,
     ExpectedColon,
     ExpectedParen,
     UnknownType,
     TypeRedeclaration,
     FunctionRedeclaration,
+    SignalRedeclaration,
     ExpectedColonOrOpeningCurly,
 }
 

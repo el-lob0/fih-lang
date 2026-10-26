@@ -280,10 +280,27 @@ parse_expression :: proc(
 }
 
 
+parse_block :: proc(
+    old_i: int,
+    tokens: ^[dynamic]Token,
+	values: ^[dynamic]string,
+	type_record: ^TypeStorage,
+	elements: ^ElementStorage,
+    signals: ^Signals
+    ) -> (int, Error) {
+    
+
+
+}
+
+
 parse_token_stream :: proc(
 	source_id: string,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
+	type_record: ^TypeStorage,
+	elements: ^ElementStorage,
+    signals: ^Signals,
 ) -> (int, Error) {
 
 
@@ -291,31 +308,26 @@ parse_token_stream :: proc(
 
 	// TODO:  ** Parse conditionals
 
-	// TODO:  ** Parse function definitions
-
-	// TODO:  ** Parse type declarations
+	// TODO:  ** Parse function bodies (aka parsing block with foreign params)
 
 	// TODO:  * Parse function calls
 
 	// TODO:  * Parse loops (last thing) // THEN: Code generation
 
 
-	type_record: TypeStorage
-	builtin_type_handles := store_builtin_types(&type_record)
-	elements: ElementStorage
+	builtin_type_handles := store_builtin_types(type_record)
 
 	i := 0
 	err: Error
 
-    // first we collect all the declared types  TODO: and signals
+    // first we collect all signals
 	for tokens[i] != Token.EOF {
-		 if tokens[i] == Token.KeywordType {
-            i, err = parse_type(
+		 if tokens[i] == Token.KeywordSignal {
+            i, err = parse_signal(
                 i + 1,
                 tokens,
                 values,
-                builtin_type_handles,
-                &type_record,
+                signals,
             )
             if err != Error.None {
                 return i, err
@@ -326,7 +338,26 @@ parse_token_stream :: proc(
 
     i=0
 
-    // then collect all function signatures
+    // then we collect all the declared types
+	for tokens[i] != Token.EOF {
+		 if tokens[i] == Token.KeywordType {
+            i, err = parse_type(
+                i + 1,
+                tokens,
+                values,
+                builtin_type_handles,
+                type_record,
+            )
+            if err != Error.None {
+                return i, err
+            }
+		}
+		i += 1
+	}
+
+    i=0
+
+    // then we collect all function signatures
 	for tokens[i] != Token.EOF {
 
 		#partial switch tokens[i] {
@@ -335,11 +366,11 @@ parse_token_stream :: proc(
 			{
 				i, err = parse_function_signature(
 					i + 1,
-					&elements,
+					elements,
 					tokens,
 					values,
 					builtin_type_handles,
-					&type_record,
+					type_record,
 				)
 			}
 		}

@@ -42,7 +42,12 @@ main :: proc() {
 
     fmt.printfln("%s [INFO]: %s  %s", COLOR_GREEN, COLOR_RESET, msg)
 
-    index, result := parse_token_stream(test_file, &tokens, &values)
+
+	type_record: TypeStorage
+	elements: ElementStorage
+    signals := init_signals()
+
+    index, result := parse_token_stream(test_file, &tokens, &values, &type_record, &elements, &signals)
 
     if result != Error.None {
 
@@ -67,6 +72,6 @@ main :: proc() {
     }
 
     elapsed := time.tick_diff(start, time.tick_now())
-    ok := fmt.printfln("\n        %s Completed %s in:  %.9fs", COLOR_BOLD_GREEN, COLOR_RESET, time.duration_seconds(elapsed))
+    ok := fmt.printfln("       %s Completed %s in:  %.9fs", COLOR_BOLD_GREEN, COLOR_RESET, time.duration_seconds(elapsed))
 	
 }
