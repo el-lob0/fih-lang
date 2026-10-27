@@ -7,7 +7,7 @@ import "core:time"
 // reruns main multiple times and calculates averages for every pass
 
 
-// result printing or sumth
+// for logging and stuff
 COLOR_RESET   :: "\x1b[0m"
 COLOR_RED     :: "\x1b[31m"
 COLOR_BOLD_GREEN   :: "\x1b[1;32m"

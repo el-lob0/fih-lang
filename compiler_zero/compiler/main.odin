@@ -4,74 +4,110 @@ import "core:fmt"
 import "core:time"
 
 /*
- TODO: first parse type declarations and add them to the type record
-       then parse expressions (probably the biggest pain) and variable declaratioons
+ TODO: then parse expressions (probably the biggest pain) and variable declaratioons
        then parse code blocks (conditions, loops)
        and finally parse function calls
    */
 
-// TODO: a smol file for logging
+// NOTE: to make global std functions work, make them virtually inside the same package 
+//  so basically function call checks std function as well as package functions 
+//  and adds them to the element storage if they are called 
+//  (basically std functions are written in the c file if they are called)
 
 main :: proc() {
 
-    start := time.tick_now()
+	start := time.tick_now()
 
-    test_file := "test.fih" // relative to where the command is run
+	test_file := "test.fih" // relative to where the command is run
 
-    tokens, values, positions, err, msg := file_to_tokens(test_file)
+	tokens, values, positions, err, msg := file_to_tokens(test_file)
 
-    if err != Error.None {
-        #partial switch err {
-        case Error.UnexpectedToken:
-            {
-                fmt.printfln("%s [ERROR]: %s Unexpected token, %s ", COLOR_RED, COLOR_RESET, msg)
-                return
-            }
-        case Error.ExpectedClosingSingleQuote:
-            {
-                fmt.printfln("%s [ERROR]: %s Expected closing `'`, %s ", COLOR_RED, COLOR_RESET, msg)
-                return
-            }
-        case Error.ExpectedClosingDoubleQuote:
-            {
-                fmt.printfln("%s [ERROR]: %s Expected closing `\"`, %s ", COLOR_RED, COLOR_RESET, msg)
-                return
-            }
-        }
-    }
+	if err != Error.None {
+		#partial switch err {
+		case Error.UnexpectedToken:
+			{
+				log(ERROR, fmt.aprintf("Unexpected token, %s", msg))
+				return
+			}
+		case Error.ExpectedClosingSingleQuote:
+			{
+				log(ERROR, fmt.aprintf("Expected closing `'`, %s", msg))
+				return
+			}
+		case Error.ExpectedClosingDoubleQuote:
+			{
+				log(ERROR, fmt.aprintf("Expected closing `\"`, %s", msg))
+				return
+			}
+		}
+	}
 
-    fmt.printfln("%s [INFO]: %s  %s", COLOR_GREEN, COLOR_RESET, msg)
+	log(INFO, fmt.aprintf("%s", msg))
 
+	type_record: TypeStorage // builtin + custom types
+	elements: ElementStorage // functions
+	signals := init_signals() // starts signals with the null signal
 
-	type_record: TypeStorage
-	elements: ElementStorage
-    signals := init_signals()
+	index, result := parse_token_stream(
+		test_file,
+		&tokens,
+		&values,
+		&type_record,
+		&elements,
+		&signals,
+	)
 
-    index, result := parse_token_stream(test_file, &tokens, &values, &type_record, &elements, &signals)
+	if result != Error.None {
 
-    if result != Error.None {
+		#partial switch result {
 
-        #partial switch result {
+		case Error.UnknownType:
+			{
+				log(
+					ERROR,
+					fmt.aprintf(
+						"Unknown type `%s`, line %d.",
+						positions[index].line,
+						values[index],
+					),
+				)
+				return
+			}
+		case Error.TypeRedeclaration:
+			{
+				log(
+					ERROR,
+					fmt.aprintf(
+						"Cannot redeclare type, line %d.  '%s' already exists. ",
+						positions[index].line,
+						values[index],
+					),
+				)
+				return
+			}
+		case Error.FunctionRedeclaration:
+			{
+				log(
+					ERROR,
+					fmt.aprintf(
+						"Cannot redeclare function, line %d.  '%s' already exists. ",
+						positions[index].line,
+						values[index],
+					),
+				)
+				return
+			}
+		}
+	}
 
-        case Error.UnknownType:
-            {
-                fmt.printfln("%s [ERROR]: %s Unknown type, %s ", COLOR_RED, COLOR_RESET, msg)
-                return
-            }
-        case Error.TypeRedeclaration:
-            {
-                fmt.printfln("%s [ERROR]: %s Cannot redeclare type, line %d.  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
-                return
-            }
-        case Error.FunctionRedeclaration:
-            {
-                fmt.printfln("%s [ERROR]: %s Cannot redeclare function, line %d.  '%s' already exists. ", COLOR_RED, COLOR_RESET, positions[index].line, values[index])
-                return
-            }
-        }
-    }
+	log(INFO, fmt.aprintf("%v", elements))
 
-    elapsed := time.tick_diff(start, time.tick_now())
-    ok := fmt.printfln("       %s Completed %s in:  %.9fs", COLOR_BOLD_GREEN, COLOR_RESET, time.duration_seconds(elapsed))
-	
+	elapsed := time.tick_diff(start, time.tick_now())
+	ok := fmt.printfln(
+		"       %s Completed %s in:  %.9fs",
+		COLOR_BOLD_GREEN,
+		COLOR_RESET,
+		time.duration_seconds(elapsed),
+	)
+
 }

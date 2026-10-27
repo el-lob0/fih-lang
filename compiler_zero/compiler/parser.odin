@@ -45,7 +45,7 @@ token_to_type :: proc(
 
 	if token == Token.Identifier {
 
-		len := cast(u32)len(type_record.types) 
+		len := cast(u32)len(type_record.types)
 
 		for i: u32 = 0; i < len; i += 1 {
 			if type_record.types[i].name == value {
@@ -69,8 +69,8 @@ parse_type :: proc(
 	Error,
 ) {
 
-    // TODO: add parsing for structs and enums
-    
+	// TODO: add parsing for structs and enums
+
 	// now we are at the token after `type`
 	if tokens[old_i] != Token.Identifier {
 		return old_i, Error.ExpectedTypeIdentifier
@@ -81,12 +81,12 @@ parse_type :: proc(
 	type.name = values[old_i]
 	i := old_i + 1
 
-    // first check if a type with the same name exists
-    for type in type_record.types {
-        if type.name == values[old_i] {
-            return old_i, Error.TypeRedeclaration
-        }
-    }
+	// first check if a type with the same name exists
+	for type in type_record.types {
+		if type.name == values[old_i] {
+			return old_i, Error.TypeRedeclaration
+		}
+	}
 
 	if tokens[i] != Token.Colon {
 		return i, Error.ExpectedColon
@@ -125,9 +125,9 @@ parse_type :: proc(
 		type.builtin = BuiltinType.char
 	}
 
-    type.is_custom = true
-	fmt.printfln("%s [INFO]: %s  Parsed type definition ` %v `", COLOR_GREEN, COLOR_RESET, type)
-    append_elem(&type_record.types, type)
+	type.is_custom = true
+	log(INFO, fmt.aprintf("Parsed type definition ` %v `", type))
+	append_elem(&type_record.types, type)
 
 	return i, Error.None
 }
@@ -145,21 +145,20 @@ parse_function_signature :: proc(
 ) {
 
 
-
 	// now we are at the token after `fn`
 	if tokens[old_i] != Token.Identifier {
 		return 0, Error.ExpectedIdentifier
 	}
 
-    s:=0
-    for element in elements.type {
-        if element == ElementType.Function {
-            if elements.data[s].(Function).name == values[old_i] {
-                return old_i, Error.FunctionRedeclaration
-            }
-        }
-        s+=1
-    }
+	s := 0
+	for element in elements.type {
+		if element == ElementType.Function {
+			if elements.data[s].(Function).name == values[old_i] {
+				return old_i, Error.FunctionRedeclaration
+			}
+		}
+		s += 1
+	}
 
 	function: Function
 
@@ -182,13 +181,17 @@ parse_function_signature :: proc(
 
 		if tokens[i] == Token.Identifier && param_step == NAME {
 			append_elem(&function.param_names, values[i])
-			param_step += 1
+			param_step = COLON
 			continue
 		}
 
-		if (tokens[i] == Token.Colon && param_step == COLON) ||
-		   (tokens[i] == Token.Comma && param_step == COMMA) {
-			param_step += 1
+		if (tokens[i] == Token.Colon && param_step == COLON) {
+			param_step = TYPE
+			continue
+		}
+
+		if (tokens[i] == Token.Comma && param_step == COMMA) {
+			param_step = NAME
 			continue
 		}
 
@@ -204,7 +207,7 @@ parse_function_signature :: proc(
 			}
 			append_elem(&function.param_types, type_handle)
 
-			param_step += 1
+			param_step = COMMA
 			continue
 		}
 	}
@@ -254,7 +257,7 @@ parse_function_signature :: proc(
 		i += 1
 	}
 
-	fmt.printfln("%s [INFO]: %s  Parsed function definition ` %v `", COLOR_GREEN, COLOR_RESET, function)
+	log(INFO, fmt.aprintf("Parsed function definition ` %v `", function))
 	append_elem(&elements.data, function)
 	append_elem(&elements.type, ElementType.Function)
 
@@ -264,7 +267,7 @@ parse_function_signature :: proc(
 
 parse_expression :: proc(
 	old_i: int,
-	elements: ElementStorage,
+	elements: ^ElementStorage,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 ) -> (
@@ -279,17 +282,72 @@ parse_expression :: proc(
 	return old_i, Error.None
 }
 
+parse_declaration_or_assignement :: proc(
+	old_i: int,
+	tokens: ^[dynamic]Token,
+	values: ^[dynamic]string,
+	elements: ^ElementStorage,
+    scope_buffer: ^[dynamic]string,
+) -> (
+	int,
+	Error,
+) {
+    // token at old_i is an identifier
+    i := old_i + 1
+
+    ASSIGN :int: 0  
+    INIT :int: 1
+    state :int
+
+    // TODO: first collect an array of names (for instance `a, b := something()`)
+    if tokens[i] == Token.SemiColon {
+        state = INIT 
+        // make sure var name doesnt exist
+        for name in scope_buffer {
+            if values[old_i] == name {
+                return old_i, Error.VariableRedeclaration
+            }
+        }
+        i += 1 // now past the semi colon 
+        if tokens[i] == Token.AssignOp {
+            NO_TYPE_ANNOTATION :: true 
+            i, err := parse_expression(i, elements, tokens, values)
+        }
+    }
+    return i, Error.None
+}
 
 parse_block :: proc(
-    old_i: int,
-    tokens: ^[dynamic]Token,
+	old_i: int,
+	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 	type_record: ^TypeStorage,
 	elements: ^ElementStorage,
-    signals: ^Signals
-    ) -> (int, Error) {
-    
+	signals: ^Signals,
+    foreign_names: [dynamic]string, // i.e. parameter names in a function
+) -> (
+	int,
+	Error,
+) { // assuming tokens[old_i] is an opening bracket
 
+    for name in foreign_names {
+
+    }
+    scope_buffer: [dynamic]string
+
+	i := old_i + 1
+
+	for tokens[i] != Token.CurlyBracketClose {
+		#partial switch tokens[i] {
+		case Token.Identifier:
+			{
+				i, err := parse_declaration_or_assignement(i, tokens, values, elements, &scope_buffer) 
+                    // ^will modify the scope buffer and add whatever needs to be added
+			}
+		}
+	}
+
+	return 0, Error.None
 
 }
 
@@ -300,8 +358,11 @@ parse_token_stream :: proc(
 	values: ^[dynamic]string,
 	type_record: ^TypeStorage,
 	elements: ^ElementStorage,
-    signals: ^Signals,
-) -> (int, Error) {
+	signals: ^Signals,
+) -> (
+	int,
+	Error,
+) {
 
 
 	// TODO:  *** Parse unary expressions, variable assignements, and binary expressions
@@ -320,44 +381,33 @@ parse_token_stream :: proc(
 	i := 0
 	err: Error
 
-    // first we collect all signals
+	// first we collect all signals
 	for tokens[i] != Token.EOF {
-		 if tokens[i] == Token.KeywordSignal {
-            i, err = parse_signal(
-                i + 1,
-                tokens,
-                values,
-                signals,
-            )
-            if err != Error.None {
-                return i, err
-            }
+		if tokens[i] == Token.KeywordSignal {
+			i, err = parse_signal(i + 1, tokens, values, signals)
+			if err != Error.None {
+				return i, err
+			}
 		}
 		i += 1
 	}
 
-    i=0
+	i = 0
 
-    // then we collect all the declared types
+	// then we collect all the declared types
 	for tokens[i] != Token.EOF {
-		 if tokens[i] == Token.KeywordType {
-            i, err = parse_type(
-                i + 1,
-                tokens,
-                values,
-                builtin_type_handles,
-                type_record,
-            )
-            if err != Error.None {
-                return i, err
-            }
+		if tokens[i] == Token.KeywordType {
+			i, err = parse_type(i + 1, tokens, values, builtin_type_handles, type_record)
+			if err != Error.None {
+				return i, err
+			}
 		}
 		i += 1
 	}
 
-    i=0
+	i = 0
 
-    // then we collect all function signatures
+	// then we collect all function signatures
 	for tokens[i] != Token.EOF {
 
 		#partial switch tokens[i] {
@@ -374,17 +424,17 @@ parse_token_stream :: proc(
 				)
 			}
 		}
-        if err != Error.None {
-            return i, err
-        }
+		if err != Error.None {
+			return i, err
+		}
 		i += 1
 	}
 
 
-		// case Token.KeywordRun:
-		// 	{
-		// 		i, err = parse_block()  // with no usable variables from outside the block
-		// 	}
+	// case Token.KeywordRun:
+	// 	{
+	// 		i, err = parse_block()  // with no usable variables from outside the block
+	// 	}
 
 	return 0, Error.None
 }

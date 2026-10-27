@@ -27,8 +27,6 @@ parse_signal :: proc(
 	Error,
 ) {
 
-    // TODO: add parsing for structs and enums
-    
 	// now we are at the token after `signal`
 	if tokens[old_i] != Token.Identifier && tokens[old_i] != Token.CurlyBracketOpen {
 		return old_i, Error.ExpectedSignalNameOrBlock
@@ -36,7 +34,6 @@ parse_signal :: proc(
 
 
     if tokens[old_i] == Token.Identifier {
-        fmt.println(tokens[old_i])
         for signal in signals.name {
             if signal == values[old_i] {
                 return old_i, Error.SignalRedeclaration
@@ -62,12 +59,11 @@ parse_signal :: proc(
             append_elem(&signals.name, values[i])
             i+=1
         }
-
     }
 
 	i += 1 // to go after the closing curly
 
-	fmt.printfln("%s [INFO]: %s  Added signals ` %v `", COLOR_GREEN, COLOR_RESET, signals)
+	log(INFO, fmt.aprintf("Added signals: ` %v `", signals))
 
 	return i, Error.None
 }

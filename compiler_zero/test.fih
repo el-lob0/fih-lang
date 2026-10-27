@@ -25,10 +25,7 @@ fn hello_world(name: Person): u8 {
     return success
 }
 
-fn not_hello_world(name: Person): u8 { 
-  // a foreign package's signal should not be returned
-  // read the exterior signal and then return your own from the first point of contact
-  
+fn not_hello_world(name: Person, times: u32): u8 { 
     println("hello world ", name)
     return success
 }

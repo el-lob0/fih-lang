@@ -16,6 +16,7 @@ Error :: enum {
     UnknownType,
     TypeRedeclaration,
     FunctionRedeclaration,
+    VariableRedeclaration,
     SignalRedeclaration,
     ExpectedColonOrOpeningCurly,
 }
