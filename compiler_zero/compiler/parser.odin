@@ -2,6 +2,40 @@ package v0compiler
 import "core:fmt"
 
 
+is_type :: proc(token: Token) -> bool {
+	#partial switch token {
+	case Token.TypeStruct:
+		return true
+	case Token.TypeEnum:
+		return true
+	case Token.TypeInt_8:
+		return true
+	case Token.TypeInt_32:
+		return true
+	case Token.TypeInt_64:
+		return true
+	case Token.TypeFloat_8:
+		return true
+	case Token.TypeFloat_32:
+		return true
+	case Token.TypeFloat_64:
+		return true
+	case Token.TypeUnsigned_8:
+		return true
+	case Token.TypeUnsigned_32:
+		return true
+	case Token.TypeUnsigned_64:
+		return true
+	case Token.TypeString:
+		return true
+	case Token.TypeMultistring:
+		return true
+	case Token.TypeChar:
+		return true
+	}
+	return false
+}
+
 token_to_type :: proc(
 	token: Token,
 	value: string,
@@ -265,15 +299,27 @@ parse_function_signature :: proc(
 }
 
 
+// TODO: fix the declaration types mess
 parse_expression :: proc(
 	old_i: int,
 	elements: ^ElementStorage,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
+    n_of_expr: int, // length of the types array
 ) -> (
+    // return the expression array
 	int,
-	Error,
+	Error,// -> take names and types as well
 ) {
+  /*
+     This function needs to know how many values the expression should output, and their types 
+     And if the type isnt specified (in case of single variable) infer the type 
+     In case of multiple variables, infer the types either way
+     1. go through tokens until new line
+     2. parse expressions between commas
+     3. at each expression, infer its type, and match it to the desired output types 
+     4. keep track of the count
+  */
 
 	expression: BinaryExpression
 
@@ -282,39 +328,81 @@ parse_expression :: proc(
 	return old_i, Error.None
 }
 
+ScopeBuffer :: struct {
+	names: [dynamic]string,
+	types: [dynamic]Type,
+}
+
 parse_declaration_or_assignement :: proc(
 	old_i: int,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 	elements: ^ElementStorage,
-    scope_buffer: ^[dynamic]string,
+	scope_buffer: ^ScopeBuffer,
+	handles: BuiltinHandles,
+	type_record: ^TypeStorage,
 ) -> (
 	int,
 	Error,
 ) {
-    // token at old_i is an identifier
-    i := old_i + 1
+	// token at old_i is an identifier
+	i := old_i + 1
 
-    ASSIGN :int: 0  
-    INIT :int: 1
-    state :int
+	ASSIGN: int : 0
+	INIT: int : 1
+	state: int
 
-    // TODO: first collect an array of names (for instance `a, b := something()`)
-    if tokens[i] == Token.SemiColon {
-        state = INIT 
-        // make sure var name doesnt exist
-        for name in scope_buffer {
-            if values[old_i] == name {
-                return old_i, Error.VariableRedeclaration
+	names: [dynamic]string
+	types: [dynamic]TypeHandle // either inferred from function calls OR
+	append_elem(&names, values[old_i])
+
+	for tokens[i] == Token.Identifier || tokens[i] == Token.Comma {
+		if tokens[i] == Token.Identifier {
+			append_elem(&names, values[i])
+		}
+		if tokens[i] == Token.Comma {
+			if tokens[i - 1] == Token.Comma {return i, Error.UnexpectedComma}
+		}
+		i += 1
+	}
+
+	if tokens[i] == Token.Colon {
+		state = INIT
+		i += 1 // now past the semi colon
+		if tokens[i] == Token.AssignOp { 	// variable declaration
+			NO_TYPE_ANNOTATION :: true
+			// NOTE: we allow redeclaration technically, the code generation for that is TBD
+			i, err := parse_expression(i, elements, tokens, values)
+		}
+		if tokens[i] == Token.Colon { 	// constant declaration
+			NO_TYPE_ANNOTATION :: true
+			i, err := parse_expression(i, elements, tokens, values)
+		}
+
+		type_annotated := tokens[i] == Token.Identifier || is_type(tokens[i])
+        if type_annotated {
+
+			if len(names) > 1 {return i, Error.CannotAnnotateMultipleVars}
+			
+            type_handle, err := token_to_type(tokens[i], values[i], handles, type_record)
+			
+            if err != Error.None {return i, err}
+            append_elem(&types, type_handle)
+            i+=1
+            
+            if tokens[i] == Token.CurlyBracketOpen { } // TODO: parse enum or struct types (check backend type first)
+            
+            if tokens[i] == Token.AssignOp {
+                i, err = parse_expression(i, elements, tokens, values)
+            } 
+            if tokens[i] == Token.Colon {
+                i, err = parse_expression(i, elements, tokens, values)
             }
-        }
-        i += 1 // now past the semi colon 
-        if tokens[i] == Token.AssignOp {
-            NO_TYPE_ANNOTATION :: true 
-            i, err := parse_expression(i, elements, tokens, values)
-        }
-    }
-    return i, Error.None
+            return i, Error.UnexpectedToken // no
+		}
+		return i, Error.UnexpectedToken
+	}
+	return i, Error.None
 }
 
 parse_block :: proc(
@@ -322,18 +410,19 @@ parse_block :: proc(
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 	type_record: ^TypeStorage,
+	handles: BuiltinHandles,
 	elements: ^ElementStorage,
 	signals: ^Signals,
-    foreign_names: [dynamic]string, // i.e. parameter names in a function
+	foreign_names: [dynamic]string, // i.e. parameter names in a function
 ) -> (
 	int,
 	Error,
-) { // assuming tokens[old_i] is an opening bracket
+) { 	// assuming tokens[old_i] is an opening bracket
 
-    for name in foreign_names {
+	for name in foreign_names {
 
-    }
-    scope_buffer: [dynamic]string
+	}
+	scope_buffer: ScopeBuffer
 
 	i := old_i + 1
 
@@ -341,8 +430,16 @@ parse_block :: proc(
 		#partial switch tokens[i] {
 		case Token.Identifier:
 			{
-				i, err := parse_declaration_or_assignement(i, tokens, values, elements, &scope_buffer) 
-                    // ^will modify the scope buffer and add whatever needs to be added
+				i, err := parse_declaration_or_assignement(
+					i,
+					tokens,
+					values,
+					elements,
+					&scope_buffer,
+					handles,
+					type_record,
+				)
+				// ^will modify the scope buffer and add whatever needs to be added
 			}
 		}
 	}

@@ -18,7 +18,9 @@ Error :: enum {
     FunctionRedeclaration,
     VariableRedeclaration,
     SignalRedeclaration,
+    UnexpectedComma,
     ExpectedColonOrOpeningCurly,
+    CannotAnnotateMultipleVars,
 }
 
 // TODO: make an error buffer so that the program doesnt return at every error
