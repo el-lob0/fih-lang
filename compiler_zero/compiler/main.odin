@@ -3,11 +3,6 @@ package v0compiler
 import "core:fmt"
 import "core:time"
 
-/*
- TODO: then parse expressions (probably the biggest pain) and variable declaratioons
-       then parse code blocks (conditions, loops)
-       and finally parse function calls
-   */
 
 // NOTE: to make global std functions work, make them virtually inside the same package 
 //  so basically function call checks std function as well as package functions 
@@ -67,8 +62,8 @@ main :: proc() {
 					ERROR,
 					fmt.aprintf(
 						"Unknown type `%s`, line %d.",
-						positions[index].line,
 						values[index],
+						positions[index].line,
 					),
 				)
 				return

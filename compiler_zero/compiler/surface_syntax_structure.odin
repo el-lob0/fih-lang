@@ -28,7 +28,7 @@ ElementType :: enum {
 
 	// expressions (sub statements)
 	UnaryExpression,
-	BinaryExpression,
+	Expression,
 	VariableDeclaration,
 
 
@@ -53,7 +53,7 @@ ElementData :: union {
 	Signal,
 	DeclaredType,
 	UnaryExpression,
-	BinaryExpression,
+	Expression,
 	VariableDeclaration,
 	VariableMove,
 	VariableCopy,
@@ -87,12 +87,9 @@ ReturnStatement :: [dynamic]ElementHandle // i can refer to this with an element
 
 Function :: struct {
 	name:         string,
-	
-    param_names:  [dynamic]string,        // size must
+	param_names:  [dynamic]string, // size must
 	param_types:  [dynamic]TypeHandle, // match here
-
 	return_types: [dynamic]TypeHandle, // pointing to Type
-
 	body:         [dynamic]ElementHandle,
 }
 
@@ -118,14 +115,14 @@ Match :: struct {
 }
 
 UnaryExpression :: struct {
-	operand:   ElementHandle, // can be an expression or a value
-	operation: UnaryOp,
+	operand:  Value,
+	operator: UnaryOp,
 }
 
-BinaryExpression :: struct {
-	left:      ElementHandle, // can be an expression or a bool
-	operation: BinaryOp,
-	right:     ElementHandle, // same ?
+Expression :: struct {
+	// read like: [expr, op, ..., op, expr] so len(operands)-1 = len(operators)
+	operands:  [dynamic]UnaryExpression,
+	operators: [dynamic]BinaryOp,
 }
 
 UnaryOp :: enum {
@@ -150,10 +147,12 @@ BinaryOp :: enum {
 	GREATER_EQUAL,
 }
 
+VALUE: int : 0
+NAME: int : 1
+
 Value :: struct {
-	// FIXME: seperate to string | int | float | char
 	value: string,
-	type:  TypeHandle,
+	kind:  int,
 }
 
 Signal :: struct {
@@ -204,14 +203,41 @@ BuiltinType :: enum {
 	string,
 	char,
 	multistring,
-	struct_type,
-	enum_type,
 }
 
-Type :: struct {
+NormalType :: struct {
 	name:      string, // only when its a custom type
 	is_custom: bool,
 	builtin:   BuiltinType,
+}
+
+Type :: union {
+	NormalType,
+	StructType,
+	EnumType,
+    ArrayType
+}
+
+StructType :: struct {
+	struct_name: string,
+	field_names: [dynamic]string,
+	field_types: [dynamic]TypeHandle,
+}
+
+EnumType :: struct {
+	enum_name:     string,
+	variant_names: [dynamic]string,
+}
+
+ArrayType :: struct {
+	name: string,
+    fixed: bool,
+    element_type: TypeHandle,
+    initializer: [dynamic]string, // placeholder, not fleshed out yet
+}
+
+DictionaryType :: struct {
+    // placeholder 
 }
 
 
@@ -228,94 +254,82 @@ BuiltinHandles :: struct {
 	string:      u32,
 	char:        u32,
 	multistring: u32,
-	struct_type: u32,
-	enum_type:   u32,
 }
 
 store_builtin_types :: proc(record: ^TypeStorage) -> BuiltinHandles {
-	i8 := Type {
+	i8 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.i8,
 	}
 	append_elem(&record.types, i8)
 
-	i32 := Type {
+	i32 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.i32,
 	}
 	append_elem(&record.types, i32)
 
-	i64 := Type {
+	i64 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.i64,
 	}
 	append_elem(&record.types, i64)
 
-	u8 := Type {
+	u8 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.u8,
 	}
 	append_elem(&record.types, u8)
 
-	u32 := Type {
+	u32 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.u32,
 	}
 	append_elem(&record.types, u32)
 
-	u64 := Type {
+	u64 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.u64,
 	}
 	append_elem(&record.types, u64)
 
-	f8 := Type {
+	f8 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.f8,
 	}
 	append_elem(&record.types, f8)
 
-	f32 := Type {
+	f32 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.f32,
 	}
 	append_elem(&record.types, f32)
 
-	f64 := Type {
+	f64 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.f64,
 	}
 	append_elem(&record.types, f64)
 
-	string := Type {
+	string := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.string,
 	}
 	append_elem(&record.types, string)
 
-	char := Type {
+	char := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.char,
 	}
 	append_elem(&record.types, char)
 
-	multistring := Type {
+	multistring := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.multistring,
 	}
 	append_elem(&record.types, multistring)
 
-	enum_type := Type {
-		is_custom = false,
-		builtin   = BuiltinType.enum_type,
-	}
-	append_elem(&record.types, enum_type)
-
-	struct_type := Type {
-		is_custom = false,
-		builtin   = BuiltinType.struct_type,
-	}
-	append_elem(&record.types, struct_type)
+	// NOTE: ALL enum or struct types are custom types
 
 	handles := BuiltinHandles {
 		i_8         = 0,
@@ -330,8 +344,6 @@ store_builtin_types :: proc(record: ^TypeStorage) -> BuiltinHandles {
 		string      = 9,
 		char        = 10,
 		multistring = 11,
-		struct_type = 12,
-		enum_type   = 13,
 	}
 	return handles
 }

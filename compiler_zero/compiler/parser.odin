@@ -47,10 +47,6 @@ token_to_type :: proc(
 ) {
 
 	#partial switch token {
-	case Token.TypeStruct:
-		return handles.struct_type, Error.None
-	case Token.TypeEnum:
-		return handles.enum_type, Error.None
 	case Token.TypeInt_8:
 		return handles.i_8, Error.None
 	case Token.TypeInt_32:
@@ -82,15 +78,138 @@ token_to_type :: proc(
 		len := cast(u32)len(type_record.types)
 
 		for i: u32 = 0; i < len; i += 1 {
-			if type_record.types[i].name == value {
-				return i, Error.None
+			switch type in type_record.types[i] {
+			case NormalType:
+				{
+					if type.name == value {
+						return i, Error.None
+					}
+				}
+			case StructType:
+				{
+					if type.struct_name == value {
+						return i, Error.None
+					}
+				}
+			case EnumType:
+				{
+					if type.enum_name == value {
+						return i, Error.None
+					}
+				}
 			}
+
 		}
 	}
 
 	return 0, Error.UnknownType
 }
 
+parse_enum :: proc(
+	old_i: int,
+	tokens: ^[dynamic]Token,
+	values: ^[dynamic]string,
+	builtin_type_handles: BuiltinHandles,
+	type_record: ^TypeStorage,
+) -> (
+	int,
+	Error,
+	[dynamic]string,
+) {
+	variants: [dynamic]string
+	if tokens[old_i] != Token.CurlyBracketOpen {
+		return old_i, Error.ExpectedOpeningCurly, variants
+	}
+
+	i := old_i + 1
+	COMMA :: 0
+	IDENT :: 1
+	expected := IDENT
+	for tokens[i] != Token.CurlyBracketClose {
+		#partial switch tokens[i] {
+		case Token.Identifier:
+			{
+				if expected != IDENT {return i, Error.ExpectedComma, variants}
+				append_elem(&variants, values[i])
+				expected = COMMA
+			}
+		case Token.Comma:
+			{
+				if expected != COMMA {return i, Error.ExpectedIdentifier, variants}
+				expected = IDENT
+			}
+		case Token.Newline:
+			i += 1; continue
+		case:
+			return i, Error.UnexpectedToken, variants
+		}
+		i += 1
+	}
+	return i, Error.None, variants
+}
+
+parse_struct :: proc(
+	old_i: int,
+	tokens: ^[dynamic]Token,
+	values: ^[dynamic]string,
+	handles: BuiltinHandles,
+	type_record: ^TypeStorage,
+) -> (
+	int,
+	Error,
+	[dynamic]string,
+	[dynamic]TypeHandle,
+) {
+	fields: [dynamic]string
+	types: [dynamic]TypeHandle
+
+	if tokens[old_i] != Token.CurlyBracketOpen {
+		return old_i, Error.ExpectedOpeningCurly, fields, types
+	}
+	i := old_i + 1
+
+	IDENT :: 0
+	COLON :: 1
+	TYPE :: 2
+	COMMA :: 3
+
+	expected := IDENT
+
+	for tokens[i] != Token.CurlyBracketClose {
+		#partial switch tokens[i] {
+		case Token.Comma:
+			{
+				if expected != COMMA {return i, Error.ExpectedComma, fields, types}
+				expected = IDENT
+			}
+		case Token.Colon:
+			{
+				if expected != COLON {return i, Error.ExpectedColon, fields, types}
+				expected = TYPE
+			}
+		case Token.Newline:
+			i += 1; continue
+
+		case:
+			{
+				if expected == IDENT && tokens[i] == Token.Identifier {
+					append_elem(&fields, values[i])
+					expected = COLON
+					i += 1; continue
+				}
+				type, err := token_to_type(tokens[i], values[i], handles, type_record)
+				if expected == TYPE && err == Error.None {
+					append_elem(&types, type)
+					expected = COMMA
+					i += 1; continue
+				}
+				return i, err, fields, types
+			}
+		}
+		i += 1
+	}
+	return i, Error.None, fields, types
+}
 
 parse_type :: proc(
 	old_i: int,
@@ -103,22 +222,35 @@ parse_type :: proc(
 	Error,
 ) {
 
-	// TODO: add parsing for structs and enums
-
 	// now we are at the token after `type`
 	if tokens[old_i] != Token.Identifier {
 		return old_i, Error.ExpectedTypeIdentifier
 	}
 
-	type: Type
-
-	type.name = values[old_i]
+	type_name := values[old_i]
 	i := old_i + 1
 
 	// first check if a type with the same name exists
-	for type in type_record.types {
-		if type.name == values[old_i] {
-			return old_i, Error.TypeRedeclaration
+	for t in type_record.types {
+		switch type in t {
+		case NormalType:
+			{
+				if type.name == values[old_i] {
+					return old_i, Error.TypeRedeclaration
+				}
+			}
+		case StructType:
+			{
+				if type.struct_name == values[old_i] {
+					return old_i, Error.TypeRedeclaration
+				}
+			}
+		case EnumType:
+			{
+				if type.enum_name == values[old_i] {
+					return old_i, Error.TypeRedeclaration
+				}
+			}
 		}
 	}
 
@@ -127,39 +259,110 @@ parse_type :: proc(
 	}
 	i += 1
 
+	type: Type
 
 	#partial switch tokens[i] {
 	case Token.TypeStruct:
-		type.builtin = BuiltinType.struct_type
+		i, err, fields, types := parse_struct(
+			i + 1,
+			tokens,
+			values,
+			builtin_type_handles,
+			type_record,
+		)
+		type = StructType {
+			struct_name = type_name,
+			field_names = fields,
+			field_types = types,
+		}
 	case Token.TypeEnum:
-		type.builtin = BuiltinType.enum_type
+		{
+			i, err, variants := parse_enum(
+				i + 1,
+				tokens,
+				values,
+				builtin_type_handles,
+				type_record,
+			)
+			type = EnumType {
+				enum_name     = type_name,
+				variant_names = variants,
+			}
+		}
 	case Token.TypeInt_8:
-		type.builtin = BuiltinType.i8
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.i8,
+		}
 	case Token.TypeInt_32:
-		type.builtin = BuiltinType.i32
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.i32,
+		}
 	case Token.TypeInt_64:
-		type.builtin = BuiltinType.i64
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.i64,
+		}
 	case Token.TypeFloat_8:
-		type.builtin = BuiltinType.f8
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.f8,
+		}
 	case Token.TypeFloat_32:
-		type.builtin = BuiltinType.f32
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.f32,
+		}
 	case Token.TypeFloat_64:
-		type.builtin = BuiltinType.f64
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.f64,
+		}
 	case Token.TypeUnsigned_8:
-		type.builtin = BuiltinType.u8
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.u8,
+		}
 	case Token.TypeUnsigned_32:
-		type.builtin = BuiltinType.u32
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.u32,
+		}
 	case Token.TypeUnsigned_64:
-		type.builtin = BuiltinType.u64
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.u64,
+		}
 	case Token.TypeString:
-		type.builtin = BuiltinType.string
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.string,
+		}
 	case Token.TypeMultistring:
-		type.builtin = BuiltinType.multistring
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.multistring,
+		}
 	case Token.TypeChar:
-		type.builtin = BuiltinType.char
+		type = NormalType {
+			name      = type_name,
+			is_custom = true,
+			builtin   = BuiltinType.char,
+		}
 	}
 
-	type.is_custom = true
 	log(INFO, fmt.aprintf("Parsed type definition ` %v `", type))
 	append_elem(&type_record.types, type)
 
@@ -299,19 +502,19 @@ parse_function_signature :: proc(
 }
 
 
-// TODO: fix the declaration types mess
 parse_expression :: proc(
 	old_i: int,
 	elements: ^ElementStorage,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
-    n_of_expr: int, // length of the types array
+	names_in_scope: []string,
+	types: ^[dynamic]TypeHandle,
 ) -> (
-    // return the expression array
 	int,
-	Error,// -> take names and types as well
+	Error,
+	[dynamic]ElementHandle,
 ) {
-  /*
+	/*
      This function needs to know how many values the expression should output, and their types 
      And if the type isnt specified (in case of single variable) infer the type 
      In case of multiple variables, infer the types either way
@@ -320,25 +523,37 @@ parse_expression :: proc(
      3. at each expression, infer its type, and match it to the desired output types 
      4. keep track of the count
   */
+	n_of_expr := len(types)
 
-	expression: BinaryExpression
+	expressions: [dynamic]ElementHandle
+	expression: Expression
 
 	i := old_i + 1
+	paren_count := 0
+	expr_index := 0
 
-	return old_i, Error.None
+	for tokens[i] != Token.Newline {
+
+	}
+
+
+	return old_i, Error.None, expressions
 }
 
-ScopeBuffer :: struct {
-	names: [dynamic]string,
-	types: [dynamic]Type,
+ScopeMetadata :: struct {
+	// This is mainly to keep track of names and types before compilation
+	names:        [dynamic]string,
+	types:        [dynamic]TypeHandle,
+	expr_handles: [dynamic]ElementHandle,
 }
+
 
 parse_declaration_or_assignement :: proc(
 	old_i: int,
 	tokens: ^[dynamic]Token,
 	values: ^[dynamic]string,
 	elements: ^ElementStorage,
-	scope_buffer: ^ScopeBuffer,
+	scope_metadata: ^ScopeMetadata,
 	handles: BuiltinHandles,
 	type_record: ^TypeStorage,
 ) -> (
@@ -348,14 +563,14 @@ parse_declaration_or_assignement :: proc(
 	// token at old_i is an identifier
 	i := old_i + 1
 
-	ASSIGN: int : 0
-	INIT: int : 1
-	state: int
-
+	foreign_names: []string = scope_metadata.names[:]
 	names: [dynamic]string
-	types: [dynamic]TypeHandle // either inferred from function calls OR
+	types: [dynamic]TypeHandle
+	expr_handles: [dynamic]ElementHandle
+
 	append_elem(&names, values[old_i])
 
+	// first collect var assignements/declarations
 	for tokens[i] == Token.Identifier || tokens[i] == Token.Comma {
 		if tokens[i] == Token.Identifier {
 			append_elem(&names, values[i])
@@ -366,42 +581,89 @@ parse_declaration_or_assignement :: proc(
 		i += 1
 	}
 
+	// case where its a declaration
 	if tokens[i] == Token.Colon {
-		state = INIT
 		i += 1 // now past the semi colon
-		if tokens[i] == Token.AssignOp { 	// variable declaration
-			NO_TYPE_ANNOTATION :: true
-			// NOTE: we allow redeclaration technically, the code generation for that is TBD
-			i, err := parse_expression(i, elements, tokens, values)
-		}
-		if tokens[i] == Token.Colon { 	// constant declaration
-			NO_TYPE_ANNOTATION :: true
-			i, err := parse_expression(i, elements, tokens, values)
-		}
-
+		err: Error
 		type_annotated := tokens[i] == Token.Identifier || is_type(tokens[i])
-        if type_annotated {
+		#partial switch tokens[i] {
+		case Token.AssignOp:
+			{ 	// variable declaration
+				i, err, expr_handles = parse_expression(
+					i,
+					elements,
+					tokens,
+					values,
+					foreign_names,
+					&types,
+				)
+			}
+		case Token.Colon:
+			{ 	// constant declaration
+				i, err, expr_handles = parse_expression(
+					i,
+					elements,
+					tokens,
+					values,
+					foreign_names,
+					&types,
+				)
+			}
+		case:
+			{
+				if !type_annotated {return i, Error.ExpectedTypeAnnotation}
+				if len(names) > 1 {return i, Error.CannotAnnotateMultipleVars}
 
-			if len(names) > 1 {return i, Error.CannotAnnotateMultipleVars}
-			
-            type_handle, err := token_to_type(tokens[i], values[i], handles, type_record)
-			
-            if err != Error.None {return i, err}
-            append_elem(&types, type_handle)
-            i+=1
-            
-            if tokens[i] == Token.CurlyBracketOpen { } // TODO: parse enum or struct types (check backend type first)
-            
-            if tokens[i] == Token.AssignOp {
-                i, err = parse_expression(i, elements, tokens, values)
-            } 
-            if tokens[i] == Token.Colon {
-                i, err = parse_expression(i, elements, tokens, values)
-            }
-            return i, Error.UnexpectedToken // no
+				type_handle, err := token_to_type(tokens[i], values[i], handles, type_record)
+
+				if err != Error.None {return i, err}
+				append_elem(&types, type_handle)
+				i += 1
+
+				#partial switch tokens[i] {
+				case Token.CurlyBracketOpen:
+					{} 	// TODO: enum or struct types
+				case Token.AssignOp:
+					{i, err, expr_handles = parse_expression(
+							i,
+							elements,
+							tokens,
+							values,
+							foreign_names,
+							&types,
+						)}
+				case Token.Colon:
+					{i, err, expr_handles = parse_expression(
+							i,
+							elements,
+							tokens,
+							values,
+							foreign_names,
+							&types,
+						)}
+				}
+				return i, Error.UnexpectedToken
+			}
 		}
 		return i, Error.UnexpectedToken
 	}
+	if tokens[i] == Token.AssignOp {
+		i += 1 // now past the equal sign
+		// make sure we're assigning to a variable that exists in this scope
+		for name in names {
+			exists := false
+			for existing in scope_metadata.names {
+				if name == existing {exists = true}
+			}
+			if !exists {return i, Error.UndeclaredVarAssignement}
+		}
+		err: Error
+		i, err, expr_handles = parse_expression(i, elements, tokens, values, foreign_names, &types)
+	}
+
+	append_elems(&scope_metadata.names, ..names[:])
+	append_elems(&scope_metadata.types, ..types[:]) // modified by expression parser
+	append_elems(&scope_metadata.expr_handles, ..expr_handles[:]) // modified by expression parser
 	return i, Error.None
 }
 
@@ -422,7 +684,10 @@ parse_block :: proc(
 	for name in foreign_names {
 
 	}
-	scope_buffer: ScopeBuffer
+	scope_metadata: ScopeMetadata
+	// a block will inherit its scope metadata from outer blocks :
+	//   * if the block is a function body -> takes the parameters + globals
+	//   * if the block is a loop  or branch body -> all the scope around it (before it*)
 
 	i := old_i + 1
 
@@ -435,11 +700,11 @@ parse_block :: proc(
 					tokens,
 					values,
 					elements,
-					&scope_buffer,
+					&scope_metadata,
 					handles,
 					type_record,
 				)
-				// ^will modify the scope buffer and add whatever needs to be added
+				// ^will modify the scope metadata and add whatever needs to be added
 			}
 		}
 	}
@@ -460,17 +725,6 @@ parse_token_stream :: proc(
 	int,
 	Error,
 ) {
-
-
-	// TODO:  *** Parse unary expressions, variable assignements, and binary expressions
-
-	// TODO:  ** Parse conditionals
-
-	// TODO:  ** Parse function bodies (aka parsing block with foreign params)
-
-	// TODO:  * Parse function calls
-
-	// TODO:  * Parse loops (last thing) // THEN: Code generation
 
 
 	builtin_type_handles := store_builtin_types(type_record)

@@ -5,8 +5,13 @@
 type Index: u32
 
 type Person: struct {
-    age: int,
+    age: i8,
     name: string,
+}
+
+type Country: enum {
+    France,
+    Notfrance
 }
 
 signal fihh
@@ -40,8 +45,8 @@ run {
             result := hello_world("fih")
 
             if result == failure {
-                paragraph := ```an error
-                and uhh another line```
+                paragraph := `an error
+                and uhh another line`
 
                 print(paragraph)
             }

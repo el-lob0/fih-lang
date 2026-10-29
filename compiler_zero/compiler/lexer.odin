@@ -5,7 +5,7 @@ import "core:fmt"
 import "core:strconv"
 import "core:strings"
 
-
+// TODO: * refactor the lexer
 
 Token :: enum {
     CurlyBracketOpen,
@@ -48,6 +48,7 @@ Token :: enum {
     TypeString,
     TypeMultistring,
     TypeChar,
+    TypeBool,
     Null,
     // ----------- 
     Number,
@@ -124,7 +125,7 @@ tokenize_word :: proc(word: string) -> (Token, string) {
 
       is_type := word =="i8" || word == "u8" || word == "f8" || word =="i32" || word == "u32" || word == "f32" || 
                           word == "i64" || word == "u64" || word == "f64" ||
-                          word == "string" || word == "char" || 
+                          word == "string" || word == "char" || word == "bool" || word == "mlstr" ||
                           word == "struct" || word == "enum"
 
       if is_numerical(word) {
@@ -161,9 +162,11 @@ tokenize_word :: proc(word: string) -> (Token, string) {
       case "f32": return Token.TypeFloat_32, ""
       case "f64": return Token.TypeFloat_64, ""
       case "string": return Token.TypeString, ""
+      case "mlstr": return Token.TypeMultistring, ""
       case "char": return Token.TypeChar, ""
       case "struct": return Token.TypeStruct, ""
       case "enum": return Token.TypeEnum, ""
+      case "bool": return Token.TypeBool, ""
       }
 
       return token, word // obsolete but ye         
