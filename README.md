@@ -1,12 +1,14 @@
 
 
-<img width="914" height="403" alt="image" src="https://github.com/user-attachments/assets/fb7a6dfc-25aa-470c-b72c-e3a961c8b03b" />
+<img width="1986" height="800" alt="erfewdrf" src="https://github.com/user-attachments/assets/0f55b2cc-240e-48ec-8b97-ac1fe538cd0f" />
 
 
 ### (wip)
    
 # Design   
 
+
+Experimental idea: write a memory abstraction in C ?
 
 ---
 
@@ -152,11 +154,17 @@ signal {
     input
     something
 }
-// use in a function 
-maybe_int := maybe(i32, error) // this function creates a signal type that takes one of the signals
-maybe_sting := maybe(string, null) 
 
-fn one_plus_one(): (maybe_int, maybe_string) {
+// use in a function 
+fn one_plus_one(n: #i32): (#i32, #string) {
+
+    // compiler warns if a #type isnt checked for signal first
+    // is_signal() takes a #type and tells if it has a value or a signal
+    // you can also just do `if n == null` if you know the exact signals it could contain 
+    if is_signal(n) {
+        // handle
+    }
+    a := n + 1
 
     {
     // ...
