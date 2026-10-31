@@ -6,6 +6,7 @@ import "core:strconv"
 import "core:strings"
 
 // TODO: * refactor the lexer
+// TODO: read floats into a seperate token
 
 Token :: enum {
     CurlyBracketOpen,
@@ -54,6 +55,8 @@ Token :: enum {
     Number,
     String,
     Char,
+    Float,
+    // -----------
     PlusOp,
     MinusOp,
     MultOp,

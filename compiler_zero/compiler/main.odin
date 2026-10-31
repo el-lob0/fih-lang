@@ -11,9 +11,10 @@ import "core:time"
 
 main :: proc() {
 
-	start := time.tick_now()
 
 	test_file := "test.fih" // relative to where the command is run
+
+	start := time.tick_now()
 
 	tokens, values, positions, err, msg := file_to_tokens(test_file)
 

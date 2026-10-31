@@ -19,12 +19,21 @@ Error :: enum {
     VariableRedeclaration,
     SignalRedeclaration,
     UnexpectedComma,
+    UnexpectedIdent,
+    PartialTypeAnnotation,
+    ExpectedExpression,
+    ExpectedOperand,
+    UndeclaredVarInExpr,
+    TooManyExprs,
     ExpectedComma,
     ExpectedColonOrOpeningCurly,
     CannotAnnotateMultipleVars,
     ExpectedTypeAnnotation,
     ExpectedOpeningCurly,
     UndeclaredVarAssignement,
+    ExpectedField,
+    FieldDeclaration,
+    TypeError,
 }
 
 // TODO: make an error buffer so that the program doesnt return at every error

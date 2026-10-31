@@ -8,6 +8,7 @@ TypeHandle :: u32
 // Thing here can be a variable, an expression, a loop, a function. Anything.
 // ID is used here to make it easier to make operations on things with different types.
 
+
 ElementType :: enum {
 	// statements
 	Loop,
@@ -52,11 +53,9 @@ ElementData :: union {
 	ReturnStatement,
 	Signal,
 	DeclaredType,
-	UnaryExpression,
 	Expression,
 	VariableDeclaration,
-	VariableMove,
-	VariableCopy,
+	VariableAssignement,
 	Value,
 	Pointer,
 	FieldGroup,
@@ -114,63 +113,44 @@ Match :: struct {
 	cases: [dynamic]MatchCase,
 }
 
-UnaryExpression :: struct {
-	operand:  Value,
-	operator: UnaryOp,
-}
-
 Expression :: struct {
-	// read like: [expr, op, ..., op, expr] so len(operands)-1 = len(operators)
-	operands:  [dynamic]UnaryExpression,
-	operators: [dynamic]BinaryOp,
+	token: [dynamic]Token,
+	value: [dynamic]Operand,
 }
 
-UnaryOp :: enum {
-	PLUS,
-	MINUS,
-	NOT,
+Operand :: union {
+    Value,
+    Name,
 }
 
-BinaryOp :: enum {
-	ADD,
-	SUB,
-	MUL,
-	DIV,
-	MOD,
-	AND,
-	OR,
-	EQUAL,
-	NOT_EQUAL,
-	LESS,
-	GREATER,
-	LESS_EQUAL,
-	GREATER_EQUAL,
-}
-
-VALUE: int : 0
-NAME: int : 1
-
-Value :: struct {
-	value: string,
-	kind:  int,
-}
+Value :: string
+Name :: [dynamic]string
 
 Signal :: struct {
 	name: string,
 }
 
+Statement :: union {
+    VariableDeclaration,
+    VariableAssignement
+}
+
+NameTypeTable :: struct {
+    names: [dynamic]Name,
+    types: [dynamic]TypeHandle,
+    const: [dynamic]bool,
+}
+
 VariableDeclaration :: struct {
-	name:        string,
-	type:        TypeHandle,
-	initializer: ElementHandle, // a Value
+	names:        [dynamic]string,
+	types:        [dynamic]TypeHandle,
+	initializers: [dynamic]Expression,
+	const:        bool,
 }
 
-
-VariableMove :: struct {
-	source_variable: ElementHandle,
-}
-VariableCopy :: struct {
-	source_variable: ElementHandle,
+VariableAssignement :: struct {
+	names:       [dynamic]string,
+	expressions: [dynamic]Expression,
 }
 
 
@@ -215,7 +195,7 @@ Type :: union {
 	NormalType,
 	StructType,
 	EnumType,
-    ArrayType
+	ArrayType,
 }
 
 StructType :: struct {
@@ -230,14 +210,14 @@ EnumType :: struct {
 }
 
 ArrayType :: struct {
-	name: string,
-    fixed: bool,
-    element_type: TypeHandle,
-    initializer: [dynamic]string, // placeholder, not fleshed out yet
+	name:         string,
+	fixed:        bool,
+	element_type: TypeHandle,
+	initializer:  [dynamic]string, // resolved to names vs values, maybe keep it as tokens ?
 }
 
 DictionaryType :: struct {
-    // placeholder 
+	// placeholder
 }
 
 
@@ -256,7 +236,7 @@ BuiltinHandles :: struct {
 	multistring: u32,
 }
 
-store_builtin_types :: proc(record: ^TypeStorage) -> BuiltinHandles {
+store_builtin_types :: proc(record: ^TypeStorage) {
 	i8 := NormalType {
 		is_custom = false,
 		builtin   = BuiltinType.i8,
@@ -330,20 +310,20 @@ store_builtin_types :: proc(record: ^TypeStorage) -> BuiltinHandles {
 	append_elem(&record.types, multistring)
 
 	// NOTE: ALL enum or struct types are custom types
+}
 
-	handles := BuiltinHandles {
-		i_8         = 0,
-		i_32        = 1,
-		i_64        = 2,
-		u_8         = 3,
-		u_32        = 4,
-		u_64        = 5,
-		f_8         = 6,
-		f_32        = 7,
-		f_64        = 8,
-		string      = 9,
-		char        = 10,
-		multistring = 11,
-	}
-	return handles
+
+builtin_handles :: BuiltinHandles {
+	i_8         = 0,
+	i_32        = 1,
+	i_64        = 2,
+	u_8         = 3,
+	u_32        = 4,
+	u_64        = 5,
+	f_8         = 6,
+	f_32        = 7,
+	f_64        = 8,
+	string      = 9,
+	char        = 10,
+	multistring = 11,
 }

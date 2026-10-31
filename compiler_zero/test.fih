@@ -37,7 +37,12 @@ fn not_hello_world(name: Person, times: u32): u8 {
 
 
 run {
-    
+
+    person: Person = {
+        age = 10
+        name = "name"
+    }
+
     max: u32 = 10
 
     loop (i := 0) < max {
