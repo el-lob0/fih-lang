@@ -536,7 +536,7 @@ parse_block :: proc(
 		#partial switch tokens[i] {
 		case Token.Identifier:
 			{
-				i, err := parse_statement(
+				i, err, statement := parse_statement(
 					i,
 					tokens,
 					values,
@@ -545,7 +545,7 @@ parse_block :: proc(
 					handles,
 					type_record,
 				)
-				// ^will modify the scope metadata and add whatever needs to be added
+
 			}
 		}
 	}

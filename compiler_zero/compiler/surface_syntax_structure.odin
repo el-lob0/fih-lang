@@ -58,7 +58,6 @@ ElementData :: union {
 	VariableAssignement,
 	Value,
 	Pointer,
-	FieldGroup,
 }
 
 ElementStorage :: struct {
@@ -70,18 +69,29 @@ TypeStorage :: struct {
 	types: [dynamic]Type,
 }
 
+
+Statement :: union {
+	VariableDeclaration,
+	VariableAssignement,
+    Loop,
+    Condition,
+    Function,
+    FunctionCall, 
+}
+
+
 Loop :: struct {
-	condition_handle: ElementHandle, // a boolean expression
-	body:             [dynamic]ElementHandle, // array of statements
+	condition_handle: Expression, // a boolean expression
+	body:             [dynamic]Statement, // array of statements
 }
 
 Condition :: struct {
-	condition_handle: ElementHandle, // a boolean expression
-	then_body:        [dynamic]ElementHandle, // array of statements
-	else_body:        [dynamic]ElementHandle, // array of statements
+	condition: Expression, // the data type is a normal expression but it only stands if its a valid condition
+	then_body: [dynamic]Statement, // array of statements
+	else_body: [dynamic]Statement, // array of statements
 }
 
-ReturnStatement :: [dynamic]ElementHandle // i can refer to this with an element handle as well
+ReturnStatement :: [dynamic]Expression // i can refer to this with an element handle as well
 // ^ need to enforce that the length of this matches the length of the function's declared returns
 
 Function :: struct {
@@ -89,27 +99,27 @@ Function :: struct {
 	param_names:  [dynamic]string, // size must
 	param_types:  [dynamic]TypeHandle, // match here
 	return_types: [dynamic]TypeHandle, // pointing to Type
-	body:         [dynamic]ElementHandle,
+	body:         [dynamic]Statement,
 }
 
 FunctionCall :: struct {
 	name:   string,
-	params: [dynamic]ElementHandle, // is a raw value OR an identifier OR a function call
+	params: [dynamic]Expression, // is a raw value OR an identifier OR a function call
+	// NOTE: maybe the return types to avoid looking the function up
 }
 // C transpilation: Multiple return values need a defined C representation, since C functions return only one value directly. Options include a generated struct or output parameters. This decision can wait until the transpiler is implemented.
 
 Run :: struct {
-	body:              [dynamic]ElementHandle,
-	return_expression: ElementHandle, // an expression (a number, the exit code)
+	body: [dynamic]Statement,
 }
 
 MatchCase :: struct {
-	values: [dynamic]ElementHandle,
-	body:   [dynamic]ElementHandle,
+	case_values: [dynamic]Operand,
+	case_bodies: [dynamic]Statement,
 }
 
 Match :: struct {
-	input: ElementHandle,
+	input: Expression,
 	cases: [dynamic]MatchCase,
 }
 
@@ -119,27 +129,18 @@ Expression :: struct {
 }
 
 Operand :: union {
-    Value,
-    Name,
+	Value,
+	Variable,
+    FunctionCall,
 }
 
 Value :: string
-Name :: [dynamic]string
+Variable :: [dynamic]string
 
 Signal :: struct {
 	name: string,
 }
 
-Statement :: union {
-    VariableDeclaration,
-    VariableAssignement
-}
-
-NameTypeTable :: struct {
-    names: [dynamic]Name,
-    types: [dynamic]TypeHandle,
-    const: [dynamic]bool,
-}
 
 VariableDeclaration :: struct {
 	names:        [dynamic]string,
@@ -155,7 +156,7 @@ VariableAssignement :: struct {
 
 
 Pointer :: struct {
-	pointee: ElementHandle, // a variable
+    pointee_name: string, // a variable
 }
 
 DeclaredType :: struct {
@@ -164,10 +165,14 @@ DeclaredType :: struct {
 	fields:       ElementHandle, // points to FieldGroup, applies for enums and structs only
 }
 
-// for enums and structs declaration
-FieldGroup :: struct {
-	types: [dynamic]TypeHandle, // points to a Type
-	names: [dynamic]string,
+VariableTable :: struct {
+	names: [dynamic]Variable,
+	types: [dynamic]TypeHandle,
+	const: [dynamic]bool,
+}
+// NOTE: both of these are for type and name checking !!! 
+FunctionTable :: struct {
+	funcs: [dynamic]Function,
 }
 
 BuiltinType :: enum {

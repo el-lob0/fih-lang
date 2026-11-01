@@ -339,8 +339,6 @@ parse_statement :: proc(
 	number_of_expressions := len(names)
 	parse_expressions(i, tokens, values, scope_metadata, number_of_expressions) // parses structs and enums too
 
-    // TODO: *** checking expressions' types
-
     // TODO: * when a delcaration is returned, its data is extracted to the name_type table
 	append_elems(&scope_metadata.names, ..names[:])
 	append_elems(&scope_metadata.types, ..types[:]) // modified by expression parser
